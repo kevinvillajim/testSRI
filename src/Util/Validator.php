@@ -1,4 +1,5 @@
 <?php
+
 namespace Util;
 
 /**
@@ -8,9 +9,6 @@ class Validator
 {
     /**
      * Valida un RUC ecuatoriano
-     * 
-     * @param string $ruc RUC a validar
-     * @return bool True si es válido, false en caso contrario
      */
     public static function validarRUC($ruc)
     {
@@ -47,9 +45,6 @@ class Validator
 
     /**
      * Valida una cédula ecuatoriana
-     * 
-     * @param string $cedula Cédula a validar
-     * @return bool True si es válida, false en caso contrario
      */
     public static function validarCedula($cedula)
     {
@@ -80,10 +75,54 @@ class Validator
     }
 
     /**
+     * Valida una fecha en formato dd/mm/yyyy
+     */
+    public static function validarFecha($fecha)
+    {
+        if (!preg_match('/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[012])\/(20[0-9][0-9])$/', $fecha)) {
+            return false;
+        }
+
+        list($dia, $mes, $anio) = explode('/', $fecha);
+        return checkdate($mes, $dia, $anio);
+    }
+
+    /**
+     * Valida un código de país (3 dígitos)
+     */
+    public static function validarCodigoPais($codigo)
+    {
+        return preg_match('/^[0-9]{3}$/', $codigo);
+    }
+
+    /**
+     * Valida un código de incoterm
+     */
+    public static function validarIncoterm($incoterm)
+    {
+        // Debe ser solo letras mayúsculas
+        return preg_match('/^[A-Z]{1,10}$/', $incoterm);
+    }
+
+    /**
+     * Valida un código de forma de pago
+     */
+    public static function validarFormaPago($formaPago)
+    {
+        // Debe ser dos dígitos
+        return preg_match('/^(0[1-9]|1[0-9]|2[0-1])$/', $formaPago);
+    }
+
+    /**
+     * Valida un número de placa
+     */
+    public static function validarPlaca($placa)
+    {
+        return strlen($placa) <= 20;
+    }
+
+    /**
      * Valida el dígito verificador de un RUC para persona natural
-     * 
-     * @param string $ruc RUC a validar
-     * @return bool True si es válido, false en caso contrario
      */
     private static function validarDigitoVerificadorPN($ruc)
     {
@@ -103,9 +142,6 @@ class Validator
 
     /**
      * Valida el dígito verificador de un RUC para sociedad pública o privada
-     * 
-     * @param string $ruc RUC a validar
-     * @return bool True si es válido, false en caso contrario
      */
     private static function validarDigitoVerificadorSP($ruc)
     {

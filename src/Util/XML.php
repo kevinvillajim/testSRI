@@ -16,8 +16,8 @@ class XML
      * Mapa de tipos de comprobante a archivos XSD
      */
     const XSD_FILES = [
-        '01' => 'factura_v1.0.0.xsd',  // Factura
-        '04' => 'notaCredito_v1.0.0.xsd', // Nota de Crédito
+        '01' => 'factura_V2.1.0.xsd',  // Factura
+        '04' => 'notaCredito_V1.1.0.xsd', // Nota de Crédito
         '05' => 'notaDebito_v1.0.0.xsd',  // Nota de Débito
         '06' => 'guiaRemision_v1.0.0.xsd', // Guía de Remisión
         '07' => 'comprobanteRetencion_v1.0.0.xsd', // Retención
@@ -34,6 +34,10 @@ class XML
     public static function arrayToXML($data, \SimpleXMLElement &$xml_data)
     {
         foreach ($data as $key => $value) {
+            if (is_null($value)) {
+                continue; // Saltamos los nodos nulos
+            }
+
             if (is_array($value)) {
                 if (is_numeric($key)) {
                     $key = 'item' . $key; // Manejo de arrays numéricos
@@ -225,6 +229,11 @@ class XML
         return false;
     }
 
+    /**
+     * Descarga los esquemas XSD del SRI
+     * 
+     * @return bool True si se descargaron correctamente, false en caso contrario
+     */
     public static function descargarEsquemasXSD()
     {
         $xsdDir = self::XSD_PATH;
@@ -232,16 +241,31 @@ class XML
             mkdir($xsdDir, 0755, true);
         }
 
-        // URLs de los esquemas oficiales del SRI
+        // URLs de los esquemas (actualizadas para las nuevas versiones)
         $esquemas = [
-            'factura' => 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=factura.xsd',
-            'notaCredito' => 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=notaCredito.xsd',
-            // Añadir los demás esquemas
+            'factura_V2.1.0.xsd' => 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/schemas/V2.1.0/factura.xsd',
+            'notaCredito_V1.1.0.xsd' => 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/schemas/V1.1.0/notaCredito.xsd',
+            'notaDebito_v1.0.0.xsd' => 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=notaDebito.xsd',
+            'guiaRemision_v1.0.0.xsd' => 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=guiaRemision.xsd',
+            'comprobanteRetencion_v1.0.0.xsd' => 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=comprobanteRetencion.xsd',
+            'liquidacionCompra_v1.0.0.xsd' => 'https://celcer.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=liquidacionCompra.xsd'
         ];
 
+        $exito = true;
         foreach ($esquemas as $nombre => $url) {
-            $destino = $xsdDir . '/' . $nombre . '.xsd';
-            file_put_contents($destino, file_get_contents($url));
+            try {
+                $contenido = file_get_contents($url);
+                if ($contenido === false) {
+                    $exito = false;
+                    continue;
+                }
+
+                file_put_contents($xsdDir . '/' . $nombre, $contenido);
+            } catch (\Exception $e) {
+                $exito = false;
+            }
         }
+
+        return $exito;
     }
 }

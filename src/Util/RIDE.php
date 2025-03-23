@@ -25,53 +25,7 @@ class RIDE {
      * @param string $xml_path Ruta al archivo XML autorizado
      * @return string HTML del RIDE
      */
-    // public function generarRIDEFactura($xml_path) {
-    //     // Cargar el XML autorizado
-    //     $xml = $this->cargarXMLAutorizado($xml_path);
-
-    //     if (!$xml) {
-    //         throw new \Exception("Error al cargar el XML autorizado: $xml_path");
-    //     }
-
-    //     // Extraer información del XML
-    //     $estado = (string)$xml->estado;
-    //     $numero_autorizacion = (string)$xml->numeroAutorizacion;
-    //     $fecha_autorizacion = (string)$xml->fechaAutorizacion;
-    //     $ambiente = (string)$xml->ambiente;
-
-    //     // Cargar comprobante desde el CDATA
-    //     $comprobante = new \SimpleXMLElement((string)$xml->comprobante);
-
-    //     // Extraer información de la factura
-    //     $info_tributaria = $comprobante->infoTributaria;
-    //     $info_factura = $comprobante->infoFactura;
-    //     $detalles = $comprobante->detalles->detalle;
-
-    //     // Información adicional
-    //     $info_adicional = [];
-    //     if (isset($comprobante->infoAdicional) && isset($comprobante->infoAdicional->campoAdicional)) {
-    //         foreach ($comprobante->infoAdicional->campoAdicional as $campo) {
-    //             $info_adicional[(string)$campo['nombre']] = (string)$campo;
-    //         }
-    //     }
-
-    //     // Generar HTML del RIDE
-    //     $html = $this->generarHTMLFactura(
-    //         $estado,
-    //         $numero_autorizacion,
-    //         $fecha_autorizacion,
-    //         $ambiente,
-    //         $info_tributaria,
-    //         $info_factura,
-    //         $detalles,
-    //         $info_adicional
-    //     );
-
-    //     return $html;
-    // }
-
-    public function generarRIDEFactura($xml_path)
-    {
+    public function generarRIDEFactura($xml_path) {
         try {
             // Verificar que el archivo exista
             if (!file_exists($xml_path)) {
@@ -79,140 +33,45 @@ class RIDE {
             }
 
             // Cargar el XML
-            $xml_content = file_get_contents($xml_path);
-            if (empty($xml_content)) {
-                throw new \Exception("El archivo XML autorizado está vacío");
+            $xml = simplexml_load_file($xml_path);
+            
+            // Determinar la versión
+            $version = isset($xml['version']) ? (string)$xml['version'] : '1.0.0';
+            
+            // Generar el RIDE según la versión
+            if (version_compare($version, '2.0.0', '>=')) {
+                return $this->generarRIDEFacturaV2($xml);
+            } else {
+                return $this->generarRIDEFacturaV1($xml);
             }
-
-            // Para pruebas, simplemente devolver un HTML básico
-            return $this->generarHTMLBasico($xml_path);
         } catch (\Exception $e) {
             return '<div class="alert alert-danger">Error al generar RIDE: ' . $e->getMessage() . '</div>';
         }
     }
-
-    /**
-     * Genera un HTML básico para pruebas
-     */
-    private function generarHTMLBasico($xml_path)
-    {
-        return '<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>RIDE de Prueba</title>
-    <style>
-        body { font-family: Arial, sans-serif; }
-        .container { border: 1px solid #000; padding: 20px; }
-        .header { text-align: center; border-bottom: 1px solid #000; padding-bottom: 10px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>RIDE DE PRUEBA</h2>
-            <p>Archivo: ' . basename($xml_path) . '</p>
-            <p>Fecha y Hora: ' . date('Y-m-d H:i:s') . '</p>
-        </div>
-        <div class="content">
-            <p>Este es un RIDE generado para pruebas.</p>
-        </div>
-    </div>
-</body>
-</html>';
-    }
     
     /**
-     * Genera un RIDE en HTML para una nota de crédito
-     * 
-     * @param string $xml_path Ruta al archivo XML autorizado
-     * @return string HTML del RIDE
+     * Genera el RIDE para facturas versión 2.1.0
      */
-    public function generarRIDENotaCredito($xml_path) {
-        // Cargar el XML autorizado
-        $xml = $this->cargarXMLAutorizado($xml_path);
-        
-        if (!$xml) {
-            throw new \Exception("Error al cargar el XML autorizado: $xml_path");
-        }
-        
-        // Extraer información del XML
-        $estado = (string)$xml->estado;
-        $numero_autorizacion = (string)$xml->numeroAutorizacion;
-        $fecha_autorizacion = (string)$xml->fechaAutorizacion;
-        $ambiente = (string)$xml->ambiente;
-        
-        // Cargar comprobante desde el CDATA
-        $comprobante = new \SimpleXMLElement((string)$xml->comprobante);
-        
-        // Extraer información de la nota de crédito
-        $info_tributaria = $comprobante->infoTributaria;
-        $info_nota_credito = $comprobante->infoNotaCredito;
-        $detalles = $comprobante->detalles->detalle;
+    protected function generarRIDEFacturaV2($xml) {
+        // Extraer toda la información del XML
+        $info_tributaria = $xml->infoTributaria;
+        $info_factura = $xml->infoFactura;
+        $detalles = $xml->detalles->detalle;
         
         // Información adicional
         $info_adicional = [];
-        if (isset($comprobante->infoAdicional) && isset($comprobante->infoAdicional->campoAdicional)) {
-            foreach ($comprobante->infoAdicional->campoAdicional as $campo) {
+        if (isset($xml->infoAdicional) && isset($xml->infoAdicional->campoAdicional)) {
+            foreach ($xml->infoAdicional->campoAdicional as $campo) {
                 $info_adicional[(string)$campo['nombre']] = (string)$campo;
             }
         }
         
-        // Generar HTML del RIDE
-        $html = $this->generarHTMLNotaCredito(
-            $estado,
-            $numero_autorizacion,
-            $fecha_autorizacion,
-            $ambiente,
-            $info_tributaria,
-            $info_nota_credito,
-            $detalles,
-            $info_adicional
-        );
-        
-        return $html;
-    }
-    
-    /**
-     * Carga un XML autorizado
-     * 
-     * @param string $xml_path Ruta al archivo XML autorizado
-     * @return \SimpleXMLElement|false
-     */
-    protected function cargarXMLAutorizado($xml_path) {
-        if (!file_exists($xml_path)) {
-            return false;
-        }
-        
-        libxml_use_internal_errors(true);
-        $xml = simplexml_load_file($xml_path);
-        
-        if (!$xml) {
-            return false;
-        }
-        
-        return $xml;
-    }
-    
-    /**
-     * Genera el HTML para una factura
-     * 
-     * @param string $estado Estado de autorización
-     * @param string $numero_autorizacion Número de autorización
-     * @param string $fecha_autorizacion Fecha de autorización
-     * @param string $ambiente Ambiente
-     * @param \SimpleXMLElement $info_tributaria Información tributaria
-     * @param \SimpleXMLElement $info_factura Información de la factura
-     * @param \SimpleXMLElement $detalles Detalles de la factura
-     * @param array $info_adicional Información adicional
-     * @return string HTML del RIDE
-     */
-    protected function generarHTMLFactura($estado, $numero_autorizacion, $fecha_autorizacion, $ambiente, $info_tributaria, $info_factura, $detalles, $info_adicional) {
+        // Generar HTML con todos los campos nuevos
         $html = '<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
-    <title>RIDE - Factura</title>
+    <title>RIDE - Factura v2.1.0</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -268,11 +127,11 @@ class RIDE {
     <div class="container">
         <div class="header">
             <h2>FACTURA</h2>
-            <p><strong>Número de Autorización:</strong> ' . $numero_autorizacion . '</p>
-            <p><strong>Fecha y Hora de Autorización:</strong> ' . $fecha_autorizacion . '</p>
-            <p><strong>Ambiente:</strong> ' . ($ambiente == 'PRUEBAS' ? 'PRUEBAS' : 'PRODUCCIÓN') . '</p>
-            <p><strong>Emisión:</strong> NORMAL</p>
-            <p><strong>Clave de Acceso:</strong> ' . $numero_autorizacion . '</p>
+            <p><strong>Número de Autorización:</strong> ' . (string)$info_tributaria->claveAcceso . '</p>
+            <p><strong>Fecha y Hora de Autorización:</strong> ' . date('Y-m-d H:i:s') . '</p>
+            <p><strong>Ambiente:</strong> ' . ((string)$info_tributaria->ambiente == '1' ? 'PRUEBAS' : 'PRODUCCIÓN') . '</p>
+            <p><strong>Emisión:</strong> ' . ((string)$info_tributaria->tipoEmision == '1' ? 'NORMAL' : 'CONTINGENCIA') . '</p>
+            <p><strong>Clave de Acceso:</strong> ' . (string)$info_tributaria->claveAcceso . '</p>
         </div>
         
         <div class="info-factura">
@@ -298,6 +157,10 @@ class RIDE {
             $html .= '<tr><td colspan="2"><strong>Obligado a Llevar Contabilidad:</strong> ' . (string)$info_factura->obligadoContabilidad . '</td></tr>';
         }
         
+        if (isset($info_tributaria->contribuyenteRimpe)) {
+            $html .= '<tr><td colspan="2"><strong>Contribuyente RIMPE:</strong> ' . (string)$info_tributaria->contribuyenteRimpe . '</td></tr>';
+        }
+        
         $html .= '
             </table>
         </div>
@@ -311,7 +174,24 @@ class RIDE {
                 <tr>
                     <td><strong>Fecha Emisión:</strong> ' . (string)$info_factura->fechaEmision . '</td>
                     <td><strong>Guía de Remisión:</strong> ' . (isset($info_factura->guiaRemision) ? (string)$info_factura->guiaRemision : '') . '</td>
-                </tr>
+                </tr>';
+        
+        // Campos de comercio exterior (v2.1.0)
+        if (isset($info_factura->comercioExterior)) {
+            $html .= '<tr><td colspan="2"><strong>Comercio Exterior:</strong> ' . (string)$info_factura->comercioExterior . '</td></tr>';
+        }
+        
+        if (isset($info_factura->incoTermFactura)) {
+            $html .= '<tr><td><strong>Incoterm Factura:</strong> ' . (string)$info_factura->incoTermFactura . '</td>';
+            $html .= '<td><strong>Lugar Incoterm:</strong> ' . (string)$info_factura->lugarIncoTerm . '</td></tr>';
+        }
+        
+        if (isset($info_factura->paisOrigen)) {
+            $html .= '<tr><td><strong>País Origen:</strong> ' . (string)$info_factura->paisOrigen . '</td>';
+            $html .= '<td><strong>País Destino:</strong> ' . (string)$info_factura->paisDestino . '</td></tr>';
+        }
+        
+        $html .= '
             </table>
         </div>
         
@@ -322,6 +202,7 @@ class RIDE {
                     <th>Código</th>
                     <th>Descripción</th>
                     <th>Cantidad</th>
+                    <th>Unidad</th>
                     <th>Precio Unitario</th>
                     <th>Descuento</th>
                     <th>Precio Total</th>
@@ -335,310 +216,565 @@ class RIDE {
                     <td>' . (string)$detalle->codigoPrincipal . '</td>
                     <td>' . (string)$detalle->descripcion . '</td>
                     <td>' . (string)$detalle->cantidad . '</td>
+                    <td>' . (isset($detalle->unidadMedida) ? (string)$detalle->unidadMedida : '') . '</td>
                     <td>' . (string)$detalle->precioUnitario . '</td>
                     <td>' . (string)$detalle->descuento . '</td>
-                    <td>' . (string)$detalle->precioTotalSinImpuesto . '</td>
-                </tr>';
+                   <td>' . (string)$detalle->precioTotalSinImpuesto . '</td>
+               </tr>';
         }
-        
+
         $html .= '
-            </tbody>
-        </table>
-        
-        <div class="totales">
-            <table>
-                <tr>
-                    <td><strong>SUBTOTAL ' . (isset($info_factura->totalConImpuestos->totalImpuesto[0]->tarifa) ? (string)$info_factura->totalConImpuestos->totalImpuesto[0]->tarifa . '%' : '') . ':</strong></td>
-                    <td>' . (string)$info_factura->totalSinImpuestos . '</td>
-                </tr>
-                <tr>
-                    <td><strong>SUBTOTAL 0%:</strong></td>
-                    <td>0.00</td>
-                </tr>
-                <tr>
-                    <td><strong>SUBTOTAL No objeto de IVA:</strong></td>
-                    <td>0.00</td>
-                </tr>
-                <tr>
-                    <td><strong>SUBTOTAL Exento de IVA:</strong></td>
-                    <td>0.00</td>
-                </tr>
-                <tr>
-                    <td><strong>SUBTOTAL SIN IMPUESTOS:</strong></td>
-                    <td>' . (string)$info_factura->totalSinImpuestos . '</td>
-                </tr>
-                <tr>
-                    <td><strong>DESCUENTO:</strong></td>
-                    <td>' . (string)$info_factura->totalDescuento . '</td>
-                </tr>';
-        
-        foreach ($info_factura->totalConImpuestos->totalImpuesto as $impuesto) {
-            if ((string)$impuesto->codigo == '2') { // IVA
-                $html .= '
-                <tr>
-                    <td><strong>IVA ' . (string)$impuesto->tarifa . '%:</strong></td>
-                    <td>' . (string)$impuesto->valor . '</td>
-                </tr>';
+           </tbody>
+       </table>
+       
+       <div class="totales">
+           <table>
+               <tr>
+                   <td><strong>SUBTOTAL 12%:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_factura->totalConImpuestos->totalImpuesto, '2', '2') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL 0%:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_factura->totalConImpuestos->totalImpuesto, '2', '0') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL No objeto de IVA:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_factura->totalConImpuestos->totalImpuesto, '2', '6') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL Exento de IVA:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_factura->totalConImpuestos->totalImpuesto, '2', '7') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL SIN IMPUESTOS:</strong></td>
+                   <td>' . (string)$info_factura->totalSinImpuestos . '</td>
+               </tr>
+               <tr>
+                   <td><strong>DESCUENTO:</strong></td>
+                   <td>' . (string)$info_factura->totalDescuento . '</td>
+               </tr>';
+
+        // Total de subsidio (v2.1.0)
+        if (isset($info_factura->totalSubsidio)) {
+            $html .= '
+               <tr>
+                   <td><strong>SUBSIDIO:</strong></td>
+                   <td>' . (string)$info_factura->totalSubsidio . '</td>
+               </tr>';
+        }
+
+        // Recorrer todos los impuestos para IVA
+        if (isset($info_factura->totalConImpuestos->totalImpuesto)) {
+            foreach ($info_factura->totalConImpuestos->totalImpuesto as $impuesto) {
+                if ((string)$impuesto->codigo == '2') { // IVA
+                    $html .= '
+               <tr>
+                   <td><strong>IVA ' . (string)$impuesto->codigoPorcentaje . ':</strong></td>
+                   <td>' . (string)$impuesto->valor . '</td>
+               </tr>';
+                }
             }
         }
-        
+
+        // Campos de transporte internacional (v2.1.0)
+        if (isset($info_factura->fleteInternacional)) {
+            $html .= '
+               <tr>
+                   <td><strong>FLETE INTERNACIONAL:</strong></td>
+                   <td>' . (string)$info_factura->fleteInternacional . '</td>
+               </tr>';
+        }
+
+        if (isset($info_factura->seguroInternacional)) {
+            $html .= '
+               <tr>
+                   <td><strong>SEGURO INTERNACIONAL:</strong></td>
+                   <td>' . (string)$info_factura->seguroInternacional . '</td>
+               </tr>';
+        }
+
+        if (isset($info_factura->gastosAduaneros)) {
+            $html .= '
+               <tr>
+                   <td><strong>GASTOS ADUANEROS:</strong></td>
+                   <td>' . (string)$info_factura->gastosAduaneros . '</td>
+               </tr>';
+        }
+
+        if (isset($info_factura->gastosTransporteOtros)) {
+            $html .= '
+               <tr>
+                   <td><strong>GASTOS TRANSPORTE OTROS:</strong></td>
+                   <td>' . (string)$info_factura->gastosTransporteOtros . '</td>
+               </tr>';
+        }
+
+        // Valores de retención (v2.1.0)
+        if (isset($info_factura->valorRetIva)) {
+            $html .= '
+               <tr>
+                   <td><strong>RETENCIÓN IVA:</strong></td>
+                   <td>' . (string)$info_factura->valorRetIva . '</td>
+               </tr>';
+        }
+
+        if (isset($info_factura->valorRetRenta)) {
+            $html .= '
+               <tr>
+                   <td><strong>RETENCIÓN RENTA:</strong></td>
+                   <td>' . (string)$info_factura->valorRetRenta . '</td>
+               </tr>';
+        }
+
         $html .= '
-                <tr>
-                    <td><strong>PROPINA:</strong></td>
-                    <td>' . (string)$info_factura->propina . '</td>
-                </tr>
-                <tr>
-                    <td><strong>VALOR TOTAL:</strong></td>
-                    <td>' . (string)$info_factura->importeTotal . '</td>
-                </tr>
-            </table>
-        </div>';
-        
+               <tr>
+                   <td><strong>PROPINA:</strong></td>
+                   <td>' . (string)$info_factura->propina . '</td>
+               </tr>
+               <tr>
+                   <td><strong>VALOR TOTAL:</strong></td>
+                   <td>' . (string)$info_factura->importeTotal . '</td>
+               </tr>
+           </table>
+       </div>';
+
+        // Compensaciones (v2.1.0)
+        if (isset($info_factura->compensaciones) && isset($info_factura->compensaciones->compensacion)) {
+            $html .= '
+       <div class="totales">
+           <h3>Compensaciones</h3>
+           <table>
+               <tr>
+                   <th>Código</th>
+                   <th>Tarifa</th>
+                   <th>Valor</th>
+               </tr>';
+
+            foreach ($info_factura->compensaciones->compensacion as $compensacion) {
+                $html .= '
+               <tr>
+                   <td>' . (string)$compensacion->codigo . '</td>
+                   <td>' . (string)$compensacion->tarifa . '</td>
+                   <td>' . (string)$compensacion->valor . '</td>
+               </tr>';
+            }
+
+            $html .= '
+           </table>
+       </div>';
+        }
+
+        // Formas de pago
+        if (isset($info_factura->pagos) && isset($info_factura->pagos->pago)) {
+            $html .= '
+       <div class="totales">
+           <h3>Formas de Pago</h3>
+           <table>
+               <tr>
+                   <th>Forma Pago</th>
+                   <th>Total</th>
+                   <th>Plazo</th>
+                   <th>Unidad de Tiempo</th>
+               </tr>';
+
+            foreach ($info_factura->pagos->pago as $pago) {
+                $html .= '
+               <tr>
+                   <td>' . $this->obtenerFormaPago((string)$pago->formaPago) . '</td>
+                   <td>' . (string)$pago->total . '</td>
+                   <td>' . (isset($pago->plazo) ? (string)$pago->plazo : '') . '</td>
+                   <td>' . (isset($pago->unidadTiempo) ? (string)$pago->unidadTiempo : '') . '</td>
+               </tr>';
+            }
+
+            $html .= '
+           </table>
+       </div>';
+        }
+
+        // Retenciones (v2.1.0)
+        if (isset($xml->retenciones) && isset($xml->retenciones->retencion)) {
+            $html .= '
+       <div class="totales">
+           <h3>Retenciones</h3>
+           <table>
+               <tr>
+                   <th>Código</th>
+                   <th>Código Porcentaje</th>
+                   <th>Tarifa</th>
+                   <th>Valor</th>
+               </tr>';
+
+            foreach ($xml->retenciones->retencion as $retencion) {
+                $html .= '
+               <tr>
+                   <td>' . (string)$retencion->codigo . '</td>
+                   <td>' . (string)$retencion->codigoPorcentaje . '</td>
+                   <td>' . (string)$retencion->tarifa . '</td>
+                   <td>' . (string)$retencion->valor . '</td>
+               </tr>';
+            }
+
+            $html .= '
+           </table>
+       </div>';
+        }
+
+        // Información adicional
         if (!empty($info_adicional)) {
             $html .= '
-        <div class="info-adicional">
-            <h3>Información Adicional</h3>
-            <table>';
-            
+       <div class="info-adicional">
+           <h3>Información Adicional</h3>
+           <table>';
+
             foreach ($info_adicional as $nombre => $valor) {
                 $html .= '
-                <tr>
-                    <td><strong>' . $nombre . ':</strong></td>
-                    <td>' . $valor . '</td>
-                </tr>';
+               <tr>
+                   <td><strong>' . $nombre . ':</strong></td>
+                   <td>' . $valor . '</td>
+               </tr>';
             }
-            
+
             $html .= '
-            </table>
-        </div>';
+           </table>
+       </div>';
         }
-        
+
         $html .= '
-    </div>
+   </div>
 </body>
 </html>';
-        
+
         return $html;
     }
-    
+
     /**
-     * Genera el HTML para una nota de crédito
+     * Genera un RIDE en HTML para una nota de crédito
      * 
-     * @param string $estado Estado de autorización
-     * @param string $numero_autorizacion Número de autorización
-     * @param string $fecha_autorizacion Fecha de autorización
-     * @param string $ambiente Ambiente
-     * @param \SimpleXMLElement $info_tributaria Información tributaria
-     * @param \SimpleXMLElement $info_nota_credito Información de la nota de crédito
-     * @param \SimpleXMLElement $detalles Detalles de la nota de crédito
-     * @param array $info_adicional Información adicional
+     * @param string $xml_path Ruta al archivo XML autorizado
      * @return string HTML del RIDE
      */
-    protected function generarHTMLNotaCredito($estado, $numero_autorizacion, $fecha_autorizacion, $ambiente, $info_tributaria, $info_nota_credito, $detalles, $info_adicional) {
+    public function generarRIDENotaCredito($xml_path)
+    {
+        try {
+            // Verificar que el archivo exista
+            if (!file_exists($xml_path)) {
+                throw new \Exception("El archivo XML autorizado no existe: $xml_path");
+            }
+
+            // Cargar el XML
+            $xml = simplexml_load_file($xml_path);
+
+            // Determinar la versión
+            $version = isset($xml['version']) ? (string)$xml['version'] : '1.0.0';
+
+            // Generar el RIDE según la versión
+            if (version_compare($version, '1.1.0', '>=')) {
+                return $this->generarRIDENotaCreditoV11($xml);
+            } else {
+                return $this->generarRIDENotaCreditoV1($xml);
+            }
+        } catch (\Exception $e) {
+            return '<div class="alert alert-danger">Error al generar RIDE: ' . $e->getMessage() . '</div>';
+        }
+    }
+
+    /**
+     * Genera el RIDE para notas de crédito versión 1.1.0
+     */
+    protected function generarRIDENotaCreditoV11($xml)
+    {
+        // Extraer información del XML
+        $info_tributaria = $xml->infoTributaria;
+        $info_nota_credito = $xml->infoNotaCredito;
+        $detalles = $xml->detalles->detalle;
+
+        // Información adicional
+        $info_adicional = [];
+        if (isset($xml->infoAdicional) && isset($xml->infoAdicional->campoAdicional)) {
+            foreach ($xml->infoAdicional->campoAdicional as $campo) {
+                $info_adicional[(string)$campo['nombre']] = (string)$campo;
+            }
+        }
+
+        // Generar HTML
         $html = '<!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <title>RIDE - Nota de Crédito</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 20px;
-        }
-        .header {
-            border-bottom: 1px solid #000;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-        .info-nota-credito {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        .cliente {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th, td {
-            border: 1px solid #000;
-            padding: 5px;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .totales {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-top: 10px;
-        }
-        .info-adicional {
-            border: 1px solid #000;
-            padding: 10px;
-            margin-top: 10px;
-        }
-    </style>
+   <meta charset="UTF-8">
+   <title>RIDE - Nota de Crédito v1.1.0</title>
+   <style>
+       body {
+           font-family: Arial, sans-serif;
+           font-size: 12px;
+           margin: 0;
+           padding: 20px;
+       }
+       .container {
+           border: 1px solid #000;
+           padding: 10px;
+           margin-bottom: 20px;
+       }
+       .header {
+           border-bottom: 1px solid #000;
+           padding-bottom: 10px;
+           margin-bottom: 10px;
+       }
+       .info-nota-credito {
+           border: 1px solid #000;
+           padding: 10px;
+           margin-bottom: 10px;
+       }
+       .cliente {
+           border: 1px solid #000;
+           padding: 10px;
+           margin-bottom: 10px;
+       }
+       table {
+           width: 100%;
+           border-collapse: collapse;
+       }
+       th, td {
+           border: 1px solid #000;
+           padding: 5px;
+           text-align: left;
+       }
+       th {
+           background-color: #f2f2f2;
+       }
+       .totales {
+           border: 1px solid #000;
+           padding: 10px;
+           margin-top: 10px;
+       }
+       .info-adicional {
+           border: 1px solid #000;
+           padding: 10px;
+           margin-top: 10px;
+       }
+   </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h2>NOTA DE CRÉDITO</h2>
-            <p><strong>Número de Autorización:</strong> ' . $numero_autorizacion . '</p>
-            <p><strong>Fecha y Hora de Autorización:</strong> ' . $fecha_autorizacion . '</p>
-            <p><strong>Ambiente:</strong> ' . ($ambiente == 'PRUEBAS' ? 'PRUEBAS' : 'PRODUCCIÓN') . '</p>
-            <p><strong>Emisión:</strong> NORMAL</p>
-            <p><strong>Clave de Acceso:</strong> ' . $numero_autorizacion . '</p>
-        </div>
-        
-        <div class="info-nota-credito">
-            <table>
-                <tr>
-                    <td><strong>Razón Social:</strong> ' . (string)$info_tributaria->razonSocial . '</td>
-                    <td><strong>RUC:</strong> ' . (string)$info_tributaria->ruc . '</td>
-                </tr>
-                <tr>
-                    <td><strong>Nombre Comercial:</strong> ' . (string)$info_tributaria->nombreComercial . '</td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td><strong>Dirección Matriz:</strong> ' . (string)$info_tributaria->dirMatriz . '</td>
-                    <td><strong>Dirección Sucursal:</strong> ' . (string)$info_nota_credito->dirEstablecimiento . '</td>
-                </tr>';
-                
+   <div class="container">
+       <div class="header">
+           <h2>NOTA DE CRÉDITO</h2>
+           <p><strong>Número de Autorización:</strong> ' . (string)$info_tributaria->claveAcceso . '</p>
+           <p><strong>Fecha y Hora de Autorización:</strong> ' . date('Y-m-d H:i:s') . '</p>
+           <p><strong>Ambiente:</strong> ' . ((string)$info_tributaria->ambiente == '1' ? 'PRUEBAS' : 'PRODUCCIÓN') . '</p>
+           <p><strong>Emisión:</strong> ' . ((string)$info_tributaria->tipoEmision == '1' ? 'NORMAL' : 'CONTINGENCIA') . '</p>
+           <p><strong>Clave de Acceso:</strong> ' . (string)$info_tributaria->claveAcceso . '</p>
+       </div>
+       
+       <div class="info-nota-credito">
+           <table>
+               <tr>
+                   <td><strong>Razón Social:</strong> ' . (string)$info_tributaria->razonSocial . '</td>
+                   <td><strong>RUC:</strong> ' . (string)$info_tributaria->ruc . '</td>
+               </tr>
+               <tr>
+                   <td><strong>Nombre Comercial:</strong> ' . (string)$info_tributaria->nombreComercial . '</td>
+                   <td></td>
+               </tr>
+               <tr>
+                   <td><strong>Dirección Matriz:</strong> ' . (string)$info_tributaria->dirMatriz . '</td>
+                   <td><strong>Dirección Sucursal:</strong> ' . (string)$info_nota_credito->dirEstablecimiento . '</td>
+               </tr>';
+
         if (isset($info_nota_credito->contribuyenteEspecial)) {
             $html .= '<tr><td colspan="2"><strong>Contribuyente Especial Nro:</strong> ' . (string)$info_nota_credito->contribuyenteEspecial . '</td></tr>';
         }
-        
+
         if (isset($info_nota_credito->obligadoContabilidad)) {
             $html .= '<tr><td colspan="2"><strong>Obligado a Llevar Contabilidad:</strong> ' . (string)$info_nota_credito->obligadoContabilidad . '</td></tr>';
         }
-        
+
+        if (isset($info_tributaria->contribuyenteRimpe)) {
+            $html .= '<tr><td colspan="2"><strong>Contribuyente RIMPE:</strong> ' . (string)$info_tributaria->contribuyenteRimpe . '</td></tr>';
+        }
+
+        // Campo RISE (v1.1.0)
+        if (isset($info_nota_credito->rise)) {
+            $html .= '<tr><td colspan="2"><strong>RISE:</strong> ' . (string)$info_nota_credito->rise . '</td></tr>';
+        }
+
         $html .= '
-            </table>
-        </div>
-        
-        <div class="cliente">
-            <table>
-                <tr>
-                    <td><strong>Razón Social / Nombres y Apellidos:</strong> ' . (string)$info_nota_credito->razonSocialComprador . '</td>
-                    <td><strong>Identificación:</strong> ' . (string)$info_nota_credito->identificacionComprador . '</td>
-                </tr>
-                <tr>
-                    <td><strong>Fecha Emisión:</strong> ' . (string)$info_nota_credito->fechaEmision . '</td>
-                    <td></td>
-                </tr>
-                <tr>
-                    <td><strong>Comprobante que modifica:</strong> ' . $this->obtenerTipoDocumento((string)$info_nota_credito->codDocModificado) . '</td>
-                    <td><strong>Número:</strong> ' . (string)$info_nota_credito->numDocModificado . '</td>
-                </tr>
-                <tr>
-                    <td><strong>Fecha Emisión Comprobante:</strong> ' . (string)$info_nota_credito->fechaEmisionDocSustento . '</td>
-                    <td><strong>Motivo:</strong> ' . (string)$info_nota_credito->motivo . '</td>
-                </tr>
-            </table>
-        </div>
-        
-        <h3>Detalles</h3>
-        <table>
-            <thead>
-                <tr>
-                    <th>Código</th>
-                    <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Precio Unitario</th>
-                    <th>Descuento</th>
-                    <th>Precio Total</th>
-                </tr>
-            </thead>
-            <tbody>';
-        
+           </table>
+       </div>
+       
+       <div class="cliente">
+           <table>
+               <tr>
+                   <td><strong>Razón Social / Nombres y Apellidos:</strong> ' . (string)$info_nota_credito->razonSocialComprador . '</td>
+                   <td><strong>Identificación:</strong> ' . (string)$info_nota_credito->identificacionComprador . '</td>
+               </tr>
+               <tr>
+                   <td><strong>Fecha Emisión:</strong> ' . (string)$info_nota_credito->fechaEmision . '</td>
+                   <td></td>
+               </tr>
+               <tr>
+                   <td><strong>Comprobante que modifica:</strong> ' . $this->obtenerTipoDocumento((string)$info_nota_credito->codDocModificado) . '</td>
+                   <td><strong>Número:</strong> ' . (string)$info_nota_credito->numDocModificado . '</td>
+               </tr>
+               <tr>
+                   <td><strong>Fecha Emisión Comprobante:</strong> ' . (string)$info_nota_credito->fechaEmisionDocSustento . '</td>
+                   <td><strong>Motivo:</strong> ' . (string)$info_nota_credito->motivo . '</td>
+               </tr>
+           </table>
+       </div>
+       
+       <h3>Detalles</h3>
+       <table>
+           <thead>
+               <tr>
+                   <th>Código</th>
+                   <th>Descripción</th>
+                   <th>Cantidad</th>
+                   <th>Precio Unitario</th>
+                   <th>Descuento</th>
+                   <th>Precio Total</th>
+               </tr>
+           </thead>
+           <tbody>';
+
         foreach ($detalles as $detalle) {
             $html .= '
-                <tr>
-                    <td>' . (string)$detalle->codigoInterno . '</td>
-                    <td>' . (string)$detalle->descripcion . '</td>
-                    <td>' . (string)$detalle->cantidad . '</td>
-                    <td>' . (string)$detalle->precioUnitario . '</td>
-                    <td>' . (string)$detalle->descuento . '</td>
-                    <td>' . (string)$detalle->precioTotalSinImpuesto . '</td>
-                </tr>';
+               <tr>
+                   <td>' . (string)$detalle->codigoInterno . '</td>
+                   <td>' . (string)$detalle->descripcion . '</td>
+                   <td>' . (string)$detalle->cantidad . '</td>
+                   <td>' . (string)$detalle->precioUnitario . '</td>
+                   <td>' . (string)$detalle->descuento . '</td>
+                   <td>' . (string)$detalle->precioTotalSinImpuesto . '</td>
+               </tr>';
         }
-        
+
         $html .= '
-            </tbody>
-        </table>
-        
-        <div class="totales">
-            <table>
-                <tr>
-                    <td><strong>SUBTOTAL SIN IMPUESTOS:</strong></td>
-                    <td>' . (string)$info_nota_credito->totalSinImpuestos . '</td>
-                </tr>';
-        
+           </tbody>
+       </table>
+       
+       <div class="totales">
+           <table>
+               <tr>
+                   <td><strong>SUBTOTAL 12%:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_nota_credito->totalConImpuestos->totalImpuesto, '2', '2') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL 0%:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_nota_credito->totalConImpuestos->totalImpuesto, '2', '0') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL No objeto de IVA:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_nota_credito->totalConImpuestos->totalImpuesto, '2', '6') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL Exento de IVA:</strong></td>
+                   <td>' . $this->buscarImpuestoPorCodigo($info_nota_credito->totalConImpuestos->totalImpuesto, '2', '7') . '</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL SIN IMPUESTOS:</strong></td>
+                   <td>' . (string)$info_nota_credito->totalSinImpuestos . '</td>
+               </tr>';
+
+        // Recorrer todos los impuestos para IVA
         foreach ($info_nota_credito->totalConImpuestos->totalImpuesto as $impuesto) {
             if ((string)$impuesto->codigo == '2') { // IVA
                 $html .= '
-                <tr>
-                    <td><strong>IVA ' . (string)$impuesto->tarifa . '%:</strong></td>
-                    <td>' . (string)$impuesto->valor . '</td>
-                </tr>';
+               <tr>
+                   <td><strong>IVA ' . (string)$impuesto->codigoPorcentaje . ':</strong></td>
+                   <td>' . (string)$impuesto->valor . '</td>
+               </tr>';
+
+                // Campo valorDevolucionIva (v1.1.0)
+                if (isset($impuesto->valorDevolucionIva)) {
+                    $html .= '
+               <tr>
+                   <td><strong>DEVOLUCIÓN IVA:</strong></td>
+                   <td>' . (string)$impuesto->valorDevolucionIva . '</td>
+               </tr>';
+                }
             }
         }
-        
+
         $html .= '
-                <tr>
-                    <td><strong>VALOR TOTAL:</strong></td>
-                    <td>' . (string)$info_nota_credito->valorModificacion . '</td>
-                </tr>
-            </table>
-        </div>';
-        
+               <tr>
+                   <td><strong>VALOR TOTAL:</strong></td>
+                   <td>' . (string)$info_nota_credito->valorModificacion . '</td>
+               </tr>
+           </table>
+       </div>';
+
+        // Compensaciones (v1.1.0)
+        if (isset($info_nota_credito->compensaciones) && isset($info_nota_credito->compensaciones->compensacion)) {
+            $html .= '
+       <div class="totales">
+           <h3>Compensaciones</h3>
+           <table>
+               <tr>
+                   <th>Código</th>
+                   <th>Tarifa</th>
+                   <th>Valor</th>
+               </tr>';
+
+            foreach ($info_nota_credito->compensaciones->compensacion as $compensacion) {
+                $html .= '
+               <tr>
+                   <td>' . (string)$compensacion->codigo . '</td>
+                   <td>' . (string)$compensacion->tarifa . '</td>
+                   <td>' . (string)$compensacion->valor . '</td>
+               </tr>';
+            }
+
+            $html .= '
+           </table>
+       </div>';
+        }
+
+        // Información adicional
         if (!empty($info_adicional)) {
             $html .= '
-        <div class="info-adicional">
-            <h3>Información Adicional</h3>
-            <table>';
-            
+       <div class="info-adicional">
+           <h3>Información Adicional</h3>
+           <table>';
+
             foreach ($info_adicional as $nombre => $valor) {
                 $html .= '
-                <tr>
-                    <td><strong>' . $nombre . ':</strong></td>
-                    <td>' . $valor . '</td>
-                </tr>';
+               <tr>
+                   <td><strong>' . $nombre . ':</strong></td>
+                   <td>' . $valor . '</td>
+               </tr>';
             }
-            
+
             $html .= '
-            </table>
-        </div>';
+           </table>
+       </div>';
         }
-        
+
         $html .= '
-    </div>
+   </div>
 </body>
 </html>';
-        
+
         return $html;
     }
-    
+
+    /**
+     * Busca un impuesto por código y código de porcentaje
+     */
+    private function buscarImpuestoPorCodigo($impuestos, $codigo, $codigoPorcentaje)
+    {
+        foreach ($impuestos as $impuesto) {
+            if ((string)$impuesto->codigo === $codigo && (string)$impuesto->codigoPorcentaje === $codigoPorcentaje) {
+                return (string)$impuesto->baseImponible;
+            }
+        }
+        return '0.00';
+    }
+
     /**
      * Obtiene el nombre del tipo de documento según su código
-     * 
-     * @param string $codigo Código del documento
-     * @return string Nombre del documento
      */
-    protected function obtenerTipoDocumento($codigo) {
+    private function obtenerTipoDocumento($codigo)
+    {
         $tipos = [
             '01' => 'FACTURA',
             '03' => 'LIQUIDACIÓN DE COMPRA',
@@ -647,7 +783,26 @@ class RIDE {
             '06' => 'GUÍA DE REMISIÓN',
             '07' => 'COMPROBANTE DE RETENCIÓN'
         ];
-        
+
         return isset($tipos[$codigo]) ? $tipos[$codigo] : 'DESCONOCIDO';
+    }
+
+    /**
+     * Obtiene la descripción de la forma de pago según su código
+     */
+    private function obtenerFormaPago($codigo)
+    {
+        $formas = [
+            '01' => 'SIN UTILIZACIÓN DEL SISTEMA FINANCIERO',
+            '15' => 'COMPENSACIÓN DE DEUDAS',
+            '16' => 'TARJETA DE DÉBITO',
+            '17' => 'DINERO ELECTRÓNICO',
+            '18' => 'TARJETA PREPAGO',
+            '19' => 'TARJETA DE CRÉDITO',
+            '20' => 'OTROS CON UTILIZACIÓN DEL SISTEMA FINANCIERO',
+            '21' => 'ENDOSO DE TÍTULOS'
+        ];
+
+        return isset($formas[$codigo]) ? $formas[$codigo] . ' (' . $codigo . ')' : 'DESCONOCIDO (' . $codigo . ')';
     }
 }

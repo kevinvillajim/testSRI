@@ -38,6 +38,7 @@ class NotaCredito {
             'infoTributaria' => [],
             'infoNotaCredito' => [],
             'detalles' => ['detalle' => []],
+            'maquinaFiscal' => null,
             'infoAdicional' => ['campoAdicional' => []]
         ];
     }
@@ -122,6 +123,30 @@ class NotaCredito {
             $this->datos['infoNotaCredito']['obligadoContabilidad'] = $this->config['emisor']['obligado_contabilidad'];
         }
         
+        // Campos adicionales en v1.1.0
+        if (isset($cliente['rise'])) {
+            $this->datos['infoNotaCredito']['rise'] = $cliente['rise'];
+        }
+        
+        return $this;
+    }
+    
+    /**
+     * Establecer compensaciones (nuevo en v1.1.0)
+     */
+    public function setCompensaciones($compensaciones) {
+        if (!empty($compensaciones)) {
+            $this->datos['infoNotaCredito']['compensaciones'] = ['compensacion' => []];
+            
+            foreach ($compensaciones as $comp) {
+                $this->datos['infoNotaCredito']['compensaciones']['compensacion'][] = [
+                    'codigo' => $comp['codigo'],
+                    'tarifa' => $comp['tarifa'],
+                    'valor' => number_format($comp['valor'], 2, '.', '')
+                ];
+            }
+        }
+        
         return $this;
     }
     
@@ -135,20 +160,20 @@ class NotaCredito {
         $detalle = [
             'codigoInterno' => $item['codigo'],
             'descripcion' => $item['descripcion'],
-            'cantidad' => number_format($item['cantidad'], 2, '.', ''),
-            'precioUnitario' => number_format($item['precio_unitario'], 2, '.', ''),
+            'cantidad' => number_format($item['cantidad'], 6, '.', ''),
+            'precioUnitario' => number_format($item['precio_unitario'], 6, '.', ''),
             'descuento' => number_format($item['descuento'], 2, '.', ''),
             'precioTotalSinImpuesto' => number_format($item['precio_total_sin_impuesto'], 2, '.', ''),
             'impuestos' => [
                 'impuesto' => []
             ]
         ];
-        
+
         // Agregar código auxiliar si existe
         if (isset($item['codigo_auxiliar'])) {
             $detalle['codigoAdicional'] = $item['codigo_auxiliar'];
         }
-        
+
         // Agregar impuestos
         foreach ($item['impuestos'] as $impuesto) {
             $detalle['impuestos']['impuesto'][] = [
@@ -159,35 +184,57 @@ class NotaCredito {
                 'valor' => number_format($impuesto['valor'], 2, '.', '')
             ];
         }
-        
+
         $this->datos['detalles']['detalle'][] = $detalle;
-        
+
         return $this;
     }
-    
+
     /**
      * Agrega información de totales
      * 
      * @param array $totales Datos de totales
      * @return $this
      */
-    public function setTotales($totales) {
+    public function setTotales($totales)
+    {
         $this->datos['infoNotaCredito']['totalSinImpuestos'] = number_format($totales['total_sin_impuestos'], 2, '.', '');
         $this->datos['infoNotaCredito']['valorModificacion'] = number_format($totales['valor_modificacion'], 2, '.', '');
-        
+
         // Agregar totales por impuesto
         foreach ($totales['impuestos'] as $impuesto) {
-            $this->datos['infoNotaCredito']['totalConImpuestos']['totalImpuesto'][] = [
+            $impuestoInfo = [
                 'codigo' => $impuesto['codigo'],
                 'codigoPorcentaje' => $impuesto['codigo_porcentaje'],
                 'baseImponible' => number_format($impuesto['base_imponible'], 2, '.', ''),
                 'valor' => number_format($impuesto['valor'], 2, '.', '')
             ];
+
+            // Nuevos campos en v1.1.0
+            if (isset($impuesto['valorDevolucionIva'])) {
+                $impuestoInfo['valorDevolucionIva'] = number_format($impuesto['valorDevolucionIva'], 2, '.', '');
+            }
+
+            $this->datos['infoNotaCredito']['totalConImpuestos']['totalImpuesto'][] = $impuestoInfo;
         }
-        
+
         return $this;
     }
-    
+
+    /**
+     * Establecer información de máquina fiscal (v1.1.0)
+     */
+    public function setMaquinaFiscal($maquina)
+    {
+        $this->datos['maquinaFiscal'] = [
+            'marca' => $maquina['marca'],
+            'modelo' => $maquina['modelo'],
+            'serie' => $maquina['serie']
+        ];
+
+        return $this;
+    }
+
     /**
      * Agrega información adicional a la nota de crédito
      * 
@@ -195,60 +242,64 @@ class NotaCredito {
      * @param string $valor Valor del campo
      * @return $this
      */
-    public function agregarInfoAdicional($nombre, $valor) {
+    public function agregarInfoAdicional($nombre, $valor)
+    {
         $this->datos['infoAdicional']['campoAdicional'][] = [
             '@attributes' => ['nombre' => $nombre],
             '@value' => $valor
         ];
-        
+
         return $this;
     }
-    
+
     /**
      * Genera el XML de la nota de crédito
      * 
      * @return \SimpleXMLElement
      */
-    public function generarXML() {
-        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><notaCredito id="comprobante" version="1.0.0"></notaCredito>');
-        
+    public function generarXML()
+    {
+        $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><notaCredito id="comprobante" version="1.1.0" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:/C:/borrar/xsd/11-xsd-3_V1.1.0.xsd"></notaCredito>');
+
         // Convertir el array a XML
         XML::arrayToXML($this->datos, $xml);
-        
+
         // Procesamos la información adicional
         if (!empty($this->datos['infoAdicional']['campoAdicional'])) {
             $info_adicional = $xml->addChild('infoAdicional');
-            
+
             foreach ($this->datos['infoAdicional']['campoAdicional'] as $campo) {
                 $campo_adicional = $info_adicional->addChild('campoAdicional', $campo['@value']);
                 $campo_adicional->addAttribute('nombre', $campo['@attributes']['nombre']);
             }
         }
-        
+
         $this->xml = $xml;
         return $this->xml;
     }
-    
+
     /**
      * Guarda el XML en disco
      * 
      * @return string Ruta del archivo generado
      */
-    public function guardarXML() {
+    public function guardarXML()
+    {
         if (!$this->xml) {
             $this->generarXML();
         }
-        
+
         $ruta = $this->config['rutas']['generados'] . $this->claveAcceso . '.xml';
         return XML::guardarXML($this->xml, $ruta);
     }
-    
+
     /**
      * Obtiene la clave de acceso
      * 
      * @return string
      */
-    public function getClaveAcceso() {
+    public function getClaveAcceso()
+    {
         return $this->claveAcceso;
     }
 }

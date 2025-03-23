@@ -132,12 +132,15 @@ function testFacturaXML($config)
 
         // Agregamos un ítem
         $item = [
-            'codigo' => 'PRO001',
+            // 'codigo' => 'PRO001',
+            'codigoPrincipal' => 'PRO001',
             'descripcion' => 'Producto de prueba',
             'cantidad' => 1,
             'precio_unitario' => 100,
+            'precioUnitario' => 100,
             'descuento' => 0,
-            'precio_total_sin_impuesto' => 100,
+            // 'precio_total_sin_impuesto' => 100,
+            'precioTotalSinImpuesto' => 100,
             'impuestos' => [
                 [
                     'codigo' => '2', // IVA

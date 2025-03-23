@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,24 +11,29 @@
         body {
             background-color: #f5f5f5;
         }
+
         .main-container {
             margin-top: 30px;
             margin-bottom: 50px;
         }
+
         .card {
             border: none;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
+
         .header {
             background-color: #343a40;
             color: white;
             padding: 20px 0;
             margin-bottom: 30px;
         }
+
         .btn-add-item {
             margin-top: 10px;
         }
+
         .item-row {
             background-color: #f9f9f9;
             padding: 15px;
@@ -36,6 +42,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <div class="container">
@@ -68,14 +75,14 @@
                         <div class="col-md-4 mb-3">
                             <label for="secuencial" class="form-label">Secuencial</label>
                             <input type="text" class="form-control" id="secuencial" name="secuencial" required
-                                   pattern="[0-9]{1,9}" title="Ingrese hasta 9 dígitos"
-                                   placeholder="Ejemplo: 000000001">
+                                pattern="[0-9]{1,9}" title="Ingrese hasta 9 dígitos"
+                                placeholder="Ejemplo: 000000001">
                             <small class="text-muted">El secuencial será formateado a 9 dígitos</small>
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="fecha_emision" class="form-label">Fecha de Emisión</label>
                             <input type="date" class="form-control" id="fecha_emision" name="fecha_emision" required
-                                   value="<?php echo date('Y-m-d'); ?>">
+                                value="<?php echo date('Y-m-d'); ?>">
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="tipo_identificacion" class="form-label">Tipo de Identificación</label>
@@ -93,33 +100,86 @@
                         <div class="col-md-6 mb-3">
                             <label for="razon_social" class="form-label">Razón Social / Nombres y Apellidos</label>
                             <input type="text" class="form-control" id="razon_social" name="razon_social" required
-                                   maxlength="300" placeholder="Razón Social del Cliente">
+                                maxlength="300" placeholder="Razón Social del Cliente">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="identificacion" class="form-label">Identificación</label>
                             <input type="text" class="form-control" id="identificacion" name="identificacion" required
-                                   maxlength="20" placeholder="RUC / Cédula / Pasaporte">
+                                maxlength="20" placeholder="RUC / Cédula / Pasaporte">
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-12 mb-3">
                             <label for="direccion" class="form-label">Dirección</label>
                             <input type="text" class="form-control" id="direccion" name="direccion"
-                                   maxlength="300" placeholder="Dirección del Cliente">
+                                maxlength="300" placeholder="Dirección del Cliente">
                         </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="email" class="form-label">Email</label>
                             <input type="email" class="form-control" id="email" name="email"
-                                   maxlength="300" placeholder="Email del Cliente">
+                                maxlength="300" placeholder="Email del Cliente">
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="telefono" class="form-label">Teléfono</label>
                             <input type="text" class="form-control" id="telefono" name="telefono"
-                                   maxlength="300" placeholder="Teléfono del Cliente">
+                                maxlength="300" placeholder="Teléfono del Cliente">
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-globe"></i> Comercio Exterior (Opcional)</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="comercio_exterior" class="form-label">Comercio Exterior</label>
+                            <select class="form-select" id="comercio_exterior" name="comercio_exterior">
+                                <option value="">No</option>
+                                <option value="EXPORTADOR">EXPORTADOR</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="incoterm_factura" class="form-label">Incoterm Factura</label>
+                            <input type="text" class="form-control" id="incoterm_factura" name="incoterm_factura" maxlength="10">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="lugar_incoterm" class="form-label">Lugar Incoterm</label>
+                            <input type="text" class="form-control" id="lugar_incoterm" name="lugar_incoterm" maxlength="300">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="pais_origen" class="form-label">País Origen</label>
+                            <input type="text" class="form-control" id="pais_origen" name="pais_origen" pattern="[0-9]{3}" maxlength="3">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="pais_destino" class="form-label">País Destino</label>
+                            <input type="text" class="form-control" id="pais_destino" name="pais_destino" pattern="[0-9]{3}" maxlength="3">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="puerto_embarque" class="form-label">Puerto Embarque</label>
+                            <input type="text" class="form-control" id="puerto_embarque" name="puerto_embarque">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-file-invoice-dollar"></i> Retenciones (Opcional)</h5>
+                </div>
+                <div class="card-body">
+                    <div id="retenciones-container">
+                        <!-- Aquí se agregarán las retenciones dinámicamente -->
+                    </div>
+                    <button type="button" class="btn btn-success btn-add-retencion">
+                        <i class="fas fa-plus"></i> Agregar Retención
+                    </button>
                 </div>
             </div>
 
@@ -134,34 +194,34 @@
                                 <div class="col-md-3 mb-3">
                                     <label for="item_codigo_0" class="form-label">Código</label>
                                     <input type="text" class="form-control" id="item_codigo_0" name="item_codigo[]" required
-                                           maxlength="25" placeholder="Código">
+                                        maxlength="25" placeholder="Código">
                                 </div>
                                 <div class="col-md-9 mb-3">
                                     <label for="item_descripcion_0" class="form-label">Descripción</label>
                                     <input type="text" class="form-control" id="item_descripcion_0" name="item_descripcion[]" required
-                                           maxlength="300" placeholder="Descripción">
+                                        maxlength="300" placeholder="Descripción">
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-md-3 mb-3">
                                     <label for="item_cantidad_0" class="form-label">Cantidad</label>
                                     <input type="number" class="form-control item-cantidad" id="item_cantidad_0" name="item_cantidad[]" required
-                                           step="0.01" min="0.01" placeholder="0.00">
+                                        step="0.01" min="0.01" placeholder="0.00">
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="item_precio_0" class="form-label">Precio Unitario</label>
                                     <input type="number" class="form-control item-precio" id="item_precio_0" name="item_precio[]" required
-                                           step="0.01" min="0.01" placeholder="0.00">
+                                        step="0.01" min="0.01" placeholder="0.00">
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="item_descuento_0" class="form-label">Descuento</label>
                                     <input type="number" class="form-control item-descuento" id="item_descuento_0" name="item_descuento[]"
-                                           step="0.01" min="0" placeholder="0.00" value="0.00">
+                                        step="0.01" min="0" placeholder="0.00" value="0.00">
                                 </div>
                                 <div class="col-md-3 mb-3">
                                     <label for="item_subtotal_0" class="form-label">Subtotal</label>
                                     <input type="text" class="form-control item-subtotal" id="item_subtotal_0" readonly
-                                           placeholder="0.00">
+                                        placeholder="0.00">
                                 </div>
                             </div>
                         </div>
@@ -240,10 +300,10 @@
                 const cantidad = parseFloat(row.querySelector('.item-cantidad').value) || 0;
                 const precio = parseFloat(row.querySelector('.item-precio').value) || 0;
                 const descuento = parseFloat(row.querySelector('.item-descuento').value) || 0;
-                
+
                 const subtotal = (cantidad * precio) - descuento;
                 row.querySelector('.item-subtotal').value = subtotal.toFixed(2);
-                
+
                 updateTotals();
             }
 
@@ -251,20 +311,20 @@
             function updateTotals() {
                 let subtotal = 0;
                 let totalDescuento = 0;
-                
+
                 document.querySelectorAll('.item-row').forEach(row => {
                     const cantidad = parseFloat(row.querySelector('.item-cantidad').value) || 0;
                     const precio = parseFloat(row.querySelector('.item-precio').value) || 0;
                     const descuento = parseFloat(row.querySelector('.item-descuento').value) || 0;
-                    
+
                     subtotal += cantidad * precio;
                     totalDescuento += descuento;
                 });
-                
+
                 const subtotalSinImpuestos = subtotal - totalDescuento;
                 const iva = subtotalSinImpuestos * 0.12;
                 const total = subtotalSinImpuestos + iva;
-                
+
                 document.getElementById('subtotal').textContent = subtotal.toFixed(2);
                 document.getElementById('total-descuento').textContent = totalDescuento.toFixed(2);
                 document.getElementById('subtotal-sin-impuestos').textContent = subtotalSinImpuestos.toFixed(2);
@@ -283,11 +343,11 @@
             // Maneja el clic en el botón de agregar ítem
             document.querySelector('.btn-add-item').addEventListener('click', function() {
                 currentIndex++;
-                
+
                 const newRow = document.createElement('div');
                 newRow.className = 'item-row';
                 newRow.dataset.index = currentIndex;
-                
+
                 newRow.innerHTML = `
                     <div class="row">
                         <div class="col-md-3 mb-3">
@@ -331,15 +391,15 @@
                         </div>
                     </div>
                 `;
-                
+
                 document.getElementById('items-container').appendChild(newRow);
-                
+
                 // Agrega eventos a los nuevos campos
                 const inputs = newRow.querySelectorAll('.item-cantidad, .item-precio, .item-descuento');
                 inputs.forEach(input => {
                     input.addEventListener('input', () => calculateItemSubtotal(newRow));
                 });
-                
+
                 // Agrega evento al botón de eliminar
                 newRow.querySelector('.btn-remove-item').addEventListener('click', function() {
                     newRow.remove();
@@ -351,7 +411,7 @@
             const tipoIdentificacionSelect = document.getElementById('tipo_identificacion');
             const identificacionInput = document.getElementById('identificacion');
             const razonSocialInput = document.getElementById('razon_social');
-            
+
             tipoIdentificacionSelect.addEventListener('change', function() {
                 if (this.value === '07') { // Consumidor Final
                     identificacionInput.value = '9999999999999';
@@ -368,4 +428,5 @@
         });
     </script>
 </body>
+
 </html>
