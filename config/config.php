@@ -13,7 +13,7 @@ return [
         'razon_social' => 'EMPRESA DE PRUEBA',
         'nombre_comercial' => 'EMPRESA DEMO',
         'dir_matriz' => 'DIRECCION MATRIZ PRINCIPAL',
-        'contribuyente_especial' => '', // Número de resolución o vacío
+        'contribuyente_especial' => '123', // Número de resolución o vacío
         'obligado_contabilidad' => 'SI', // SI o NO
         'regimen_microempresas' => true, // CONTRIBUYENTE RÉGIMEN RIMPE
         'agente_retencion' => false, // Número de resolución o false
