@@ -1,0 +1,185 @@
+# Guía de Implementación del Sistema de Facturación Electrónica SRI Ecuador
+
+Esta guía describe los pasos necesarios para implementar y utilizar el sistema de facturación electrónica que cumple con los requisitos del SRI en Ecuador.
+
+## Requisitos Previos
+
+1. **Servidor web con PHP 7.4 o superior**
+   - PHP con extensiones: xml, soap, dom, libxml, openssl, json
+   - Apache/Nginx configurado
+   - Permisos de escritura en las carpetas del sistema
+
+2. **Certificado Digital**
+   - Obtener un certificado digital válido (archivo .p12) de una entidad certificadora autorizada por el SRI
+   - Conocer la clave del certificado digital
+
+3. **Registro en el SRI**
+   - Tener una solicitud de certificación aprobada para emisión de comprobantes electrónicos en el SRI
+   - Registrar un convenio de débito para pago de declaraciones
+
+## Estructura de Carpetas
+
+```
+/facturacion-sri/
+├── config/
+│   └── config.php
+├── src/
+│   ├── Comprobantes/
+│   │   ├── Factura.php
+│   │   └── NotaCredito.php
+│   ├── Firmador/
+│   │   └── FirmadorXML.php
+│   ├── SRI/
+│   │   ├── ClienteSRI.php
+│   │   └── Autorizacion.php
+│   └── Util/
+│       ├── XML.php
+│       └── RIDE.php
+├── public/
+│   ├── index.php
+│   ├── css/
+│   └── js/
+├── templates/
+│   ├── inicio.php
+│   ├── generar-factura.php
+│   └── generar-nota-credito.php
+├── certificados/
+│   └── certificado.p12
+├── comprobantes/
+│   ├── generados/
+│   ├── firmados/
+│   ├── enviados/
+│   └── autorizados/
+└── facturacion-sri.php
+```
+
+## Pasos de Instalación
+
+1. **Copiar los archivos**
+   - Copie todos los archivos a la carpeta del servidor web
+   - Asegúrese de que las carpetas dentro de `comprobantes/` tengan permisos de escritura
+
+2. **Configurar el sistema**
+   - Edite el archivo `config/config.php` con la información de su empresa
+   - Configure el RUC, razón social, nombre comercial, dirección, etc.
+   - Establezca el ambiente (1: Pruebas, 2: Producción)
+   - Configure la ruta y clave del certificado digital
+
+3. **Implementar la firma electrónica real**
+   - La clase `FirmadorXML.php` actual contiene una implementación simulada
+   - Para un entorno de producción, debe implementar la firma XAdES-BES real utilizando una biblioteca como xmlseclibs
+
+## Consideraciones para producción
+
+1. **Implementación de firma real**
+   Para implementar la firma electrónica XAdES-BES en un entorno de producción, se debe:
+   
+   - Instalar la biblioteca xmlseclibs (`composer require robrichards/xmlseclibs`)
+   - Reemplazar el método `firmarXML()` en la clase `FirmadorXML` con una implementación real
+   - Asegurarse de que cumple con el estándar XAdES-BES requerido por el SRI
+
+2. **Seguridad de certificado**
+   - Mantenga su certificado .p12 en una ubicación segura, fuera del directorio web público
+   - Considere cifrar la clave del certificado en la configuración
+
+3. **Validación adicional**
+   - Implemente validaciones adicionales para las entradas del usuario
+   - Valide correctamente las cédulas o RUC según las reglas del SRI
+
+4. **Control de secuenciales**
+   - Implemente un sistema para gestionar automáticamente los secuenciales
+   - Evite duplicados verificando los secuenciales en uso
+
+5. **Gestión de errores robusta**
+   - Mejore el manejo de errores para entornos de producción
+   - Implemente registro (logging) de errores y autorización
+   - Establezca reintentos automáticos para solicitudes fallidas
+
+## Modificaciones Recomendadas para Producción
+
+1. **Autenticación y Autorización**
+   - Implemente un sistema de usuarios
+   - Configure roles y permisos para diferentes funciones
+
+2. **Base de Datos**
+   - Integre una base de datos para almacenar:
+     - Comprobantes emitidos
+     - Clientes
+     - Productos/Servicios
+     - Historial de autorizaciones
+
+3. **Mejoras en la Interfaz**
+   - Implemente un catálogo de productos
+   - Añada gestión de clientes
+   - Incorpore reportes de comprobantes emitidos
+
+4. **Integración con otros sistemas**
+   - Conecte con sistemas contables
+   - Implemente APIs para integración con otras aplicaciones
+
+## Uso del Sistema
+
+1. **Generación de Facturas**
+   - Navegue a la página principal
+   - Seleccione "Crear Factura"
+   - Complete el formulario con los datos del cliente
+   - Agregue los ítems de la factura
+   - Genere y envíe la factura al SRI
+
+2. **Generación de Notas de Crédito**
+   - Navegue a la página principal
+   - Seleccione "Crear Nota de Crédito"
+   - Complete el formulario con los datos del cliente y documento a modificar
+   - Agregue los ítems de la nota de crédito
+   - Genere y envíe la nota de crédito al SRI
+
+## Solución de Problemas Comunes
+
+1. **Error de conexión al SRI**
+   - Verifique conectividad a internet
+   - Confirme que las URLs de los servicios web del SRI están actualizadas
+   - Verifique que los certificados SSL del servidor sean válidos
+
+2. **Errores de firma electrónica**
+   - Verifique que el certificado .p12 sea válido y no esté caducado
+   - Confirme que la clave del certificado es correcta
+   - Asegúrese de que la implementación XAdES-BES cumpla con los requisitos del SRI
+
+3. **Errores de autorización**
+   - Revise los mensajes de error devueltos por el SRI
+   - Verifique que los datos del emisor sean correctos
+   - Confirme que tiene autorización para emitir comprobantes electrónicos
+
+4. **Problemas con secuenciales**
+   - No reutilice secuenciales
+   - Verifique que los secuenciales sigan la secuencia correcta
+   - Consulte comprobantes existentes para evitar duplicados
+
+## Recursos Adicionales
+
+1. **Documentación SRI**
+   - Ficha técnica de comprobantes electrónicos
+   - Esquemas XSD para validación
+   - Catálogos de códigos (impuestos, formas de pago, etc.)
+
+2. **Bibliotecas útiles**
+   - XMLSecLibs: Para firma XML
+   - FPDF/MPDF: Para generación de PDF de los RIDE
+
+## Recomendaciones Finales
+
+1. **Pruebas exhaustivas**
+   - Realice pruebas en el ambiente de pruebas antes de pasar a producción
+   - Pruebe todos los escenarios posibles (diferentes tipos de clientes, impuestos, etc.)
+
+2. **Respaldo de comprobantes**
+   - Implemente respaldos periódicos de los comprobantes generados
+   - Mantenga una copia de seguridad de los comprobantes autorizados
+
+3. **Monitoreo**
+   - Implemente un sistema de monitoreo para verificar la disponibilidad de los servicios del SRI
+   - Configure alertas para errores recurrentes
+
+4. **Actualización**
+   - Manténgase informado sobre cambios en la normativa del SRI
+   - Actualice el sistema cuando haya cambios en los esquemas o requisitos
