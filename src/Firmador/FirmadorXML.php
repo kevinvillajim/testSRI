@@ -1,36 +1,53 @@
 <?php
+
 namespace Firmador;
+
+use RobRichards\XMLSecLibs\XMLSecurityDSig;
+use RobRichards\XMLSecLibs\XMLSecurityKey;
+use RobRichards\XMLSecLibs\XMLSecEnc;
 
 /**
  * Clase para firmar documentos XML bajo el estándar XAdES-BES
  */
-class FirmadorXML {
+class FirmadorXML
+{
     /**
      * @var string Ruta al certificado P12
      */
     protected $certificado;
-    
+
     /**
      * @var string Clave del certificado
      */
     protected $clave;
-    
+
     /**
      * @var array Configuración del sistema
      */
     protected $config;
-    
+
+    /**
+     * @var array Información del certificado
+     */
+    protected $certInfo;
+
     /**
      * Constructor
      * 
      * @param array $config Configuración del sistema
      */
-    public function __construct($config) {
+    public function __construct($config)
+    {
         $this->certificado = $config['rutas']['certificado'];
         $this->clave = $config['rutas']['clave_certificado'];
         $this->config = $config;
+
+        // Verificar que el certificado exista
+        if (!file_exists($this->certificado)) {
+            throw new \Exception("Certificado no encontrado: {$this->certificado}");
+        }
     }
-    
+
     /**
      * Firma un documento XML
      * 
@@ -38,148 +55,228 @@ class FirmadorXML {
      * @param string $output_path Ruta donde guardar el XML firmado (opcional)
      * @return string|bool Ruta al archivo firmado o false en caso de error
      */
-    public function firmarXML($xml_path, $output_path = null) {
+    public function firmarXML($xml_path, $output_path = null)
+    {
         if (!file_exists($xml_path)) {
             throw new \Exception("El archivo XML no existe: $xml_path");
         }
-        
-        if (!file_exists($this->certificado)) {
-            throw new \Exception("El certificado no existe: {$this->certificado}");
-        }
-        
+
         // Si no se especificó ruta de salida, generamos una
         if ($output_path === null) {
             $output_path = $this->config['rutas']['firmados'] . basename($xml_path);
         }
-        
-        // Implementación de la firma electrónica utilizando una librería externa
-        // Acá deberíamos usar una librería como xmlseclibs o una implementación propia
-        // de XAdES-BES. Por simplicidad, usaremos un enfoque simulado
-        
-        // En un entorno real, deberíamos:
-        // 1. Leer el certificado P12
-        // 2. Extraer información del certificado
-        // 3. Generar el XML de firma según el estándar XAdES-BES
-        // 4. Insertar la firma en el documento XML
-        
-        // Simulación básica de firma
-        $xml_content = file_get_contents($xml_path);
-        
-        // Cargamos el XML
-        $dom = new \DOMDocument('1.0', 'UTF-8');
-        $dom->preserveWhiteSpace = false;
-        $dom->formatOutput = true;
-        $dom->loadXML($xml_content);
-        
-        // Nodo raíz
-        $root = $dom->documentElement;
-        
-        // NOTA: Esta es una implementación simulada. En un entorno real,
-        // debes usar una biblioteca de firma XAdES-BES adecuada.
-        $firma_simulada = $this->generarFirmaSimulada($dom);
-        $root->appendChild($firma_simulada);
-        
-        // Guardamos el documento firmado
-        $dom->save($output_path);
-        
-        return $output_path;
+
+        try {
+            // Cargar el XML
+            $dom = new \DOMDocument('1.0', 'UTF-8');
+            $dom->preserveWhiteSpace = false;
+            $dom->formatOutput = true;
+            $dom->load($xml_path);
+
+            // Obtener el nodo raíz
+            $root = $dom->documentElement;
+
+            // Crear y configurar XMLSecurityDSig
+            $objDSig = new XMLSecurityDSig();
+            $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
+            $objDSig->addReference(
+                $dom,
+                XMLSecurityDSig::SHA1,
+                ['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
+                ['force_uri' => true]
+            );
+
+            // Obtener información del certificado
+            $this->obtenerInfoCertificado();
+
+            // Crear nodo Signature
+            $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA1, ['type' => 'private']);
+            $objKey->loadKey($this->certInfo['pkey']);
+
+            // Firmar el documento
+            $objDSig->sign($objKey);
+
+            // Agregar certificado al XML
+            $objDSig->add509Cert($this->certInfo['cert']);
+
+            // Añadir las propiedades XAdES
+            $this->agregarPropiedadesXAdES($dom, $objDSig);
+
+            // Añadir Signature al documento
+            $objDSig->appendSignature($root);
+
+            // Guardar el documento firmado
+            $dom->save($output_path);
+
+            return $output_path;
+        } catch (\Exception $e) {
+            throw new \Exception("Error al firmar el XML: " . $e->getMessage());
+        }
     }
-    
+
     /**
-     * Genera una estructura de firma simulada (solo para demostración)
+     * Obtiene información del certificado
+     */
+    private function obtenerInfoCertificado()
+    {
+        // Leer el certificado PKCS12
+        $pkcs12 = file_get_contents($this->certificado);
+
+        // Extraer los certificados y la clave privada
+        if (!openssl_pkcs12_read($pkcs12, $certs, $this->clave)) {
+            throw new \Exception("No se pudo leer el certificado PKCS12. Verifique la clave.");
+        }
+
+        // Guardar información del certificado
+        $this->certInfo = [
+            'cert' => $certs['cert'],
+            'pkey' => $certs['pkey'],
+            'extracerts' => isset($certs['extracerts']) ? $certs['extracerts'] : null
+        ];
+
+        // Verificar la fecha de validez del certificado
+        $cert_data = openssl_x509_parse($this->certInfo['cert']);
+
+        if ($cert_data['validTo_time_t'] < time()) {
+            throw new \Exception("El certificado ha expirado. Renovar el certificado digital.");
+        }
+
+        if (time() < $cert_data['validFrom_time_t']) {
+            throw new \Exception("El certificado aún no es válido. Verificar la fecha de inicio de validez.");
+        }
+    }
+
+    /**
+     * Agrega las propiedades XAdES al documento
      * 
      * @param \DOMDocument $dom Documento XML
-     * @return \DOMNode Nodo de firma
+     * @param XMLSecurityDSig $objDSig Objeto de firma
      */
-    private function generarFirmaSimulada($dom) {
-        // Este método simula la estructura de una firma XAdES-BES
-        // En un entorno real, debes usar una biblioteca adecuada
-        
-        // Namespace de XMLDSig
-        $ns_xmldsig = 'http://www.w3.org/2000/09/xmldsig#';
-        $ns_xades = 'http://uri.etsi.org/01903/v1.3.2#';
-        
-        // Crear el nodo Signature
-        $signature = $dom->createElementNS($ns_xmldsig, 'ds:Signature');
-        $signature->setAttribute('Id', 'Signature' . uniqid());
-        
-        // SignedInfo
-        $signed_info = $dom->createElementNS($ns_xmldsig, 'ds:SignedInfo');
-        $signature->appendChild($signed_info);
-        
-        // CanonicalizationMethod
-        $canonicalization_method = $dom->createElementNS($ns_xmldsig, 'ds:CanonicalizationMethod');
-        $canonicalization_method->setAttribute('Algorithm', 'http://www.w3.org/TR/2001/REC-xml-c14n-20010315');
-        $signed_info->appendChild($canonicalization_method);
-        
-        // SignatureMethod
-        $signature_method = $dom->createElementNS($ns_xmldsig, 'ds:SignatureMethod');
-        $signature_method->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#rsa-sha1');
-        $signed_info->appendChild($signature_method);
-        
-        // Reference
-        $reference = $dom->createElementNS($ns_xmldsig, 'ds:Reference');
-        $reference->setAttribute('Id', 'Reference-ID-' . uniqid());
-        $reference->setAttribute('URI', '#comprobante');
-        $signed_info->appendChild($reference);
-        
-        // Transforms
-        $transforms = $dom->createElementNS($ns_xmldsig, 'ds:Transforms');
-        $reference->appendChild($transforms);
-        
-        // Transform
-        $transform = $dom->createElementNS($ns_xmldsig, 'ds:Transform');
-        $transform->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#enveloped-signature');
-        $transforms->appendChild($transform);
-        
-        // DigestMethod
-        $digest_method = $dom->createElementNS($ns_xmldsig, 'ds:DigestMethod');
-        $digest_method->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
-        $reference->appendChild($digest_method);
-        
-        // DigestValue (valor simulado)
-        $digest_value = $dom->createElementNS($ns_xmldsig, 'ds:DigestValue', 'DIGEST_VALUE_SIMULADO');
-        $reference->appendChild($digest_value);
-        
-        // SignatureValue (valor simulado)
-        $signature_value = $dom->createElementNS($ns_xmldsig, 'ds:SignatureValue', 'SIGNATURE_VALUE_SIMULADO');
-        $signature->appendChild($signature_value);
-        
-        // KeyInfo
-        $key_info = $dom->createElementNS($ns_xmldsig, 'ds:KeyInfo');
-        $key_info->setAttribute('Id', 'Certificate' . uniqid());
-        $signature->appendChild($key_info);
-        
-        // X509Data
-        $x509_data = $dom->createElementNS($ns_xmldsig, 'ds:X509Data');
-        $key_info->appendChild($x509_data);
-        
-        // X509Certificate (valor simulado)
-        $x509_certificate = $dom->createElementNS($ns_xmldsig, 'ds:X509Certificate', 'CERTIFICATE_VALUE_SIMULADO');
-        $x509_data->appendChild($x509_certificate);
-        
-        // Object
-        $object = $dom->createElementNS($ns_xmldsig, 'ds:Object');
-        $signature->appendChild($object);
-        
-        // QualifyingProperties
-        $qualifying_properties = $dom->createElementNS($ns_xades, 'etsi:QualifyingProperties');
-        $qualifying_properties->setAttribute('Target', '#' . $signature->getAttribute('Id'));
-        $object->appendChild($qualifying_properties);
-        
-        // SignedProperties
-        $signed_properties = $dom->createElementNS($ns_xades, 'etsi:SignedProperties');
-        $signed_properties->setAttribute('Id', $signature->getAttribute('Id') . '-SignedProperties');
-        $qualifying_properties->appendChild($signed_properties);
-        
-        // SignedSignatureProperties
-        $signed_signature_properties = $dom->createElementNS($ns_xades, 'etsi:SignedSignatureProperties');
-        $signed_properties->appendChild($signed_signature_properties);
-        
-        // SigningTime
-        $signing_time = $dom->createElementNS($ns_xades, 'etsi:SigningTime', date('c'));
-        $signed_signature_properties->appendChild($signing_time);
-        
-        return $signature;
+    private function agregarPropiedadesXAdES(\DOMDocument $dom, XMLSecurityDSig $objDSig)
+    {
+        // Obtener el nodo Signature
+        $signatureNode = $objDSig->sigNode;
+
+        // Obtener el ID del nodo Signature
+        $signatureId = $signatureNode->getAttribute('Id');
+        if (empty($signatureId)) {
+            $signatureId = 'Signature-' . uniqid();
+            $signatureNode->setAttribute('Id', $signatureId);
+        }
+
+        // Crear el nodo Object para las propiedades XAdES
+        $objectNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:Object');
+        $signatureNode->appendChild($objectNode);
+
+        // Crear el nodo QualifyingProperties
+        $qualifyingPropertiesNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:QualifyingProperties');
+        $qualifyingPropertiesNode->setAttribute('Target', '#' . $signatureId);
+        $objectNode->appendChild($qualifyingPropertiesNode);
+
+        // Crear el nodo SignedProperties
+        $signedPropertiesId = $signatureId . '-SignedProperties';
+        $signedPropertiesNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:SignedProperties');
+        $signedPropertiesNode->setAttribute('Id', $signedPropertiesId);
+        $qualifyingPropertiesNode->appendChild($signedPropertiesNode);
+
+        // Crear el nodo SignedSignatureProperties
+        $signedSignaturePropertiesNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:SignedSignatureProperties');
+        $signedPropertiesNode->appendChild($signedSignaturePropertiesNode);
+
+        // Agregar el nodo SigningTime
+        $signingTimeNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:SigningTime', date('c'));
+        $signedSignaturePropertiesNode->appendChild($signingTimeNode);
+
+        // Agregar el nodo SigningCertificate
+        $signingCertificateNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:SigningCertificate');
+        $signedSignaturePropertiesNode->appendChild($signingCertificateNode);
+
+        // Agregar el nodo Cert
+        $certNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:Cert');
+        $signingCertificateNode->appendChild($certNode);
+
+        // Agregar el nodo CertDigest
+        $certDigestNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:CertDigest');
+        $certNode->appendChild($certDigestNode);
+
+        // Agregar el nodo DigestMethod
+        $digestMethodNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:DigestMethod');
+        $digestMethodNode->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
+        $certDigestNode->appendChild($digestMethodNode);
+
+        // Calcular el digest del certificado
+        $certDigest = base64_encode(openssl_x509_fingerprint($this->certInfo['cert'], 'sha1', true));
+
+        // Agregar el nodo DigestValue
+        $digestValueNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:DigestValue', $certDigest);
+        $certDigestNode->appendChild($digestValueNode);
+
+        // Agregar el nodo IssuerSerial
+        $issuerSerialNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:IssuerSerial');
+        $certNode->appendChild($issuerSerialNode);
+
+        // Obtener información del certificado
+        $certData = openssl_x509_parse($this->certInfo['cert']);
+
+        // Formar el nombre del emisor
+        $issuerName = '';
+        foreach ($certData['issuer'] as $key => $value) {
+            if (is_array($value)) {
+                foreach ($value as $subValue) {
+                    $issuerName .= "/$key=$subValue";
+                }
+            } else {
+                $issuerName .= "/$key=$value";
+            }
+        }
+        $issuerName = ltrim($issuerName, '/');
+
+        // Agregar el nodo X509IssuerName
+        $x509IssuerNameNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:X509IssuerName', $issuerName);
+        $issuerSerialNode->appendChild($x509IssuerNameNode);
+
+        // Agregar el nodo X509SerialNumber
+        $x509SerialNumberNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:X509SerialNumber', $certData['serialNumber']);
+        $issuerSerialNode->appendChild($x509SerialNumberNode);
+
+        // Agregar el nodo SignedDataObjectProperties
+        $signedDataObjectPropertiesNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:SignedDataObjectProperties');
+        $signedPropertiesNode->appendChild($signedDataObjectPropertiesNode);
+
+        // Agregar el nodo DataObjectFormat
+        $dataObjectFormatNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:DataObjectFormat');
+        $dataObjectFormatNode->setAttribute('ObjectReference', '#Reference-ID-1');
+        $signedDataObjectPropertiesNode->appendChild($dataObjectFormatNode);
+
+        // Agregar el nodo Description
+        $descriptionNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:Description', 'contenido comprobante');
+        $dataObjectFormatNode->appendChild($descriptionNode);
+
+        // Agregar el nodo MimeType
+        $mimeTypeNode = $dom->createElementNS('http://uri.etsi.org/01903/v1.3.2#', 'etsi:MimeType', 'text/xml');
+        $dataObjectFormatNode->appendChild($mimeTypeNode);
+
+        // Añadir una referencia a SignedProperties
+        $refNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:Reference');
+        $refNode->setAttribute('Id', 'SignedPropertiesID');
+        $refNode->setAttribute('Type', 'http://uri.etsi.org/01903#SignedProperties');
+        $refNode->setAttribute('URI', '#' . $signedPropertiesId);
+
+        // Agregar SignedInfo a la referencia
+        $signedInfoNode = $signatureNode->getElementsByTagName('SignedInfo')->item(0);
+        $signedInfoNode->appendChild($refNode);
+
+        // Agregar DigestMethod a la referencia
+        $digestMethodNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:DigestMethod');
+        $digestMethodNode->setAttribute('Algorithm', 'http://www.w3.org/2000/09/xmldsig#sha1');
+        $refNode->appendChild($digestMethodNode);
+
+        // Calcular el digest de las propiedades firmadas
+        $canon = $signedPropertiesNode->C14N(true, false);
+        $signedPropertiesDigest = base64_encode(hash('sha1', $canon, true));
+
+        // Agregar DigestValue a la referencia
+        $digestValueNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:DigestValue', $signedPropertiesDigest);
+        $refNode->appendChild($digestValueNode);
     }
 }

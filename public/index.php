@@ -1,5 +1,27 @@
+<?php
+// Cargamos el autoloader
+require_once __DIR__ . '/../facturacion-sri.php';
+
+// Cargamos la configuración
+$config = require_once __DIR__ . '/../config/config.php';
+
+// Creamos las carpetas necesarias si no existen
+$carpetas = [
+    $config['rutas']['generados'],
+    $config['rutas']['firmados'],
+    $config['rutas']['enviados'],
+    $config['rutas']['autorizados']
+];
+
+foreach ($carpetas as $carpeta) {
+    if (!file_exists($carpeta)) {
+        mkdir($carpeta, 0755, true);
+    }
+}
+?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,28 +32,34 @@
         body {
             background-color: #f5f5f5;
         }
+
         .main-container {
             margin-top: 50px;
             margin-bottom: 50px;
         }
+
         .card {
             border: none;
             border-radius: 10px;
             box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
             transition: transform 0.3s;
         }
+
         .card:hover {
             transform: translateY(-5px);
         }
+
         .card-icon {
             font-size: 48px;
             margin-bottom: 20px;
             color: #0d6efd;
         }
+
         .btn-primary {
             border-radius: 20px;
             padding: 8px 20px;
         }
+
         .header {
             background-color: #343a40;
             color: white;
@@ -40,6 +68,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="header">
         <div class="container">
@@ -78,7 +107,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="col-md-4 mb-4">
                 <div class="card h-100 text-center p-4">
                     <div class="card-body">
@@ -111,4 +140,5 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
