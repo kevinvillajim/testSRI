@@ -55,6 +55,65 @@ class FirmadorXML
      * @param string $output_path Ruta donde guardar el XML firmado (opcional)
      * @return string|bool Ruta al archivo firmado o false en caso de error
      */
+    // public function firmarXML($xml_path, $output_path = null)
+    // {
+    //     if (!file_exists($xml_path)) {
+    //         throw new \Exception("El archivo XML no existe: $xml_path");
+    //     }
+
+    //     // Si no se especificó ruta de salida, generamos una
+    //     if ($output_path === null) {
+    //         $output_path = $this->config['rutas']['firmados'] . basename($xml_path);
+    //     }
+
+    //     try {
+    //         // Cargar el XML
+    //         $dom = new \DOMDocument('1.0', 'UTF-8');
+    //         $dom->preserveWhiteSpace = false;
+    //         $dom->formatOutput = true;
+    //         $dom->load($xml_path);
+
+    //         // Obtener el nodo raíz
+    //         $root = $dom->documentElement;
+
+    //         // Crear y configurar XMLSecurityDSig
+    //         $objDSig = new XMLSecurityDSig();
+    //         $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
+    //         $objDSig->addReference(
+    //             $dom,
+    //             XMLSecurityDSig::SHA1,
+    //             ['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
+    //             ['force_uri' => true]
+    //         );
+
+    //         // Obtener información del certificado
+    //         $this->obtenerInfoCertificado();
+
+    //         // Crear nodo Signature
+    //         $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA1, ['type' => 'private']);
+    //         $objKey->loadKey($this->certInfo['pkey']);
+
+    //         // Firmar el documento
+    //         $objDSig->sign($objKey);
+
+    //         // Agregar certificado al XML
+    //         $objDSig->add509Cert($this->certInfo['cert']);
+
+    //         // Añadir las propiedades XAdES
+    //         $this->agregarPropiedadesXAdES($dom, $objDSig);
+
+    //         // Añadir Signature al documento
+    //         $objDSig->appendSignature($root);
+
+    //         // Guardar el documento firmado
+    //         $dom->save($output_path);
+
+    //         return $output_path;
+    //     } catch (\Exception $e) {
+    //         throw new \Exception("Error al firmar el XML: " . $e->getMessage());
+    //     }
+    // }
+
     public function firmarXML($xml_path, $output_path = null)
     {
         if (!file_exists($xml_path)) {
@@ -67,46 +126,63 @@ class FirmadorXML
         }
 
         try {
-            // Cargar el XML
-            $dom = new \DOMDocument('1.0', 'UTF-8');
-            $dom->preserveWhiteSpace = false;
-            $dom->formatOutput = true;
-            $dom->load($xml_path);
+            // Leer el contenido del XML
+            $xml_content = file_get_contents($xml_path);
 
-            // Obtener el nodo raíz
-            $root = $dom->documentElement;
+            // Validar que el contenido no esté vacío
+            if (empty($xml_content)) {
+                throw new \Exception("El archivo XML está vacío");
+            }
 
-            // Crear y configurar XMLSecurityDSig
-            $objDSig = new XMLSecurityDSig();
-            $objDSig->setCanonicalMethod(XMLSecurityDSig::EXC_C14N);
-            $objDSig->addReference(
-                $dom,
+            // Crear un nuevo documento DOM
+            $doc = new \DOMDocument('1.0', 'UTF-8');
+            $doc->preserveWhiteSpace = false;
+            $doc->formatOutput = true;
+
+            // Cargar el XML desde el contenido
+            if (!$doc->loadXML($xml_content)) {
+                throw new \Exception("Error al cargar el XML: documento XML inválido");
+            }
+
+            // Crear un objeto para firmar
+            $signer = new XMLSecurityDSig();
+
+            // Agregar la referencia
+            $signer->addReference(
+                $doc,
                 XMLSecurityDSig::SHA1,
-                ['http://www.w3.org/2000/09/xmldsig#enveloped-signature'],
-                ['force_uri' => true]
+                ['http://www.w3.org/2000/09/xmldsig#enveloped-signature']
             );
 
-            // Obtener información del certificado
-            $this->obtenerInfoCertificado();
+            // Crear una clave privada
+            $privateKey = new XMLSecurityKey(
+                XMLSecurityKey::RSA_SHA1,
+                ['type' => 'private']
+            );
 
-            // Crear nodo Signature
-            $objKey = new XMLSecurityKey(XMLSecurityKey::RSA_SHA1, ['type' => 'private']);
-            $objKey->loadKey($this->certInfo['pkey']);
+            // Cargar la clave desde el certificado
+            $pkcs12 = file_get_contents($this->certificado);
+            $certs = [];
+
+            // Extraer la clave y certificado
+            if (!openssl_pkcs12_read($pkcs12, $certs, $this->clave)) {
+                throw new \Exception("No se pudo leer el certificado PKCS12. Verifique la clave.");
+            }
+
+            // Cargar la clave privada
+            $privateKey->loadKey($certs['pkey']);
 
             // Firmar el documento
-            $objDSig->sign($objKey);
+            $signer->sign($privateKey);
 
-            // Agregar certificado al XML
-            $objDSig->add509Cert($this->certInfo['cert']);
+            // Agregar el certificado
+            $signer->add509Cert($certs['cert']);
 
-            // Añadir las propiedades XAdES
-            $this->agregarPropiedadesXAdES($dom, $objDSig);
-
-            // Añadir Signature al documento
-            $objDSig->appendSignature($root);
+            // Agregar la firma al documento
+            $signer->appendSignature($doc->documentElement);
 
             // Guardar el documento firmado
-            $dom->save($output_path);
+            $doc->save($output_path);
 
             return $output_path;
         } catch (\Exception $e) {
@@ -220,16 +296,15 @@ class FirmadorXML
 
         // Formar el nombre del emisor
         $issuerName = '';
-        foreach ($certData['issuer'] as $key => $value) {
-            if (is_array($value)) {
-                foreach ($value as $subValue) {
-                    $issuerName .= "/$key=$subValue";
-                }
-            } else {
-                $issuerName .= "/$key=$value";
+        if (is_array($certData['issuer'])) {
+            $parts = array();
+            foreach ($certData['issuer'] as $key => $value) {
+                array_unshift($parts, "$key=$value");
             }
+            $issuerName = implode(',', $parts);
+        } else {
+            $issuerName = $certData['issuer'];
         }
-        $issuerName = ltrim($issuerName, '/');
 
         // Agregar el nodo X509IssuerName
         $x509IssuerNameNode = $dom->createElementNS('http://www.w3.org/2000/09/xmldsig#', 'ds:X509IssuerName', $issuerName);

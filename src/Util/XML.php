@@ -38,10 +38,24 @@ class XML
                 if (is_numeric($key)) {
                     $key = 'item' . $key; // Manejo de arrays numéricos
                 }
-                $subnode = $xml_data->addChild($key);
-                self::arrayToXML($value, $subnode);
+
+                // Si el valor es un array con un atributo especial '@attributes'
+                if (isset($value['@attributes']) || isset($value['@value'])) {
+                    $node = $xml_data->addChild($key, isset($value['@value']) ? $value['@value'] : null);
+
+                    // Añadir atributos si existen
+                    if (isset($value['@attributes']) && is_array($value['@attributes'])) {
+                        foreach ($value['@attributes'] as $attr_name => $attr_value) {
+                            $node->addAttribute($attr_name, $attr_value);
+                        }
+                    }
+                } else {
+                    $subnode = $xml_data->addChild($key);
+                    self::arrayToXML($value, $subnode);
+                }
             } else {
-                $xml_data->addChild("$key", htmlspecialchars("$value"));
+                // Escapar valores especiales y convertir a string
+                $xml_data->addChild($key, htmlspecialchars((string)$value));
             }
         }
         return $xml_data;
@@ -138,23 +152,28 @@ class XML
             return "El archivo XSD no existe: $xsd_path";
         }
 
-        // Validar el XML contra el XSD
-        $xml = new \DOMDocument();
-        $xml->load($xml_path);
+        try {
+            // Validar el XML contra el XSD
+            $xml = new \DOMDocument();
+            $xml->load($xml_path);
 
-        libxml_use_internal_errors(true);
+            libxml_use_internal_errors(true);
+            $result = $xml->schemaValidate($xsd_path);
 
-        if (!$xml->schemaValidate($xsd_path)) {
-            $errors = libxml_get_errors();
-            $error_message = "Error de validación XSD:\n";
-            foreach ($errors as $error) {
-                $error_message .= "Línea {$error->line}: {$error->message}\n";
+            if (!$result) {
+                $errors = libxml_get_errors();
+                $error_message = "Error de validación XSD:\n";
+                foreach ($errors as $error) {
+                    $error_message .= "Línea {$error->line}: {$error->message}\n";
+                }
+                libxml_clear_errors();
+                return $error_message;
             }
-            libxml_clear_errors();
-            return $error_message;
-        }
 
-        return true;
+            return true;
+        } catch (\Exception $e) {
+            return "Error al validar XML: " . $e->getMessage();
+        }
     }
 
     /**
@@ -204,5 +223,25 @@ class XML
         }
 
         return false;
+    }
+
+    public static function descargarEsquemasXSD()
+    {
+        $xsdDir = self::XSD_PATH;
+        if (!is_dir($xsdDir)) {
+            mkdir($xsdDir, 0755, true);
+        }
+
+        // URLs de los esquemas oficiales del SRI
+        $esquemas = [
+            'factura' => 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=factura.xsd',
+            'notaCredito' => 'https://cel.sri.gob.ec/comprobantes-electronicos-ws/RecepcionComprobantesOffline?xsd=notaCredito.xsd',
+            // Añadir los demás esquemas
+        ];
+
+        foreach ($esquemas as $nombre => $url) {
+            $destino = $xsdDir . '/' . $nombre . '.xsd';
+            file_put_contents($destino, file_get_contents($url));
+        }
     }
 }

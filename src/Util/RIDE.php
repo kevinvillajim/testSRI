@@ -25,49 +25,101 @@ class RIDE {
      * @param string $xml_path Ruta al archivo XML autorizado
      * @return string HTML del RIDE
      */
-    public function generarRIDEFactura($xml_path) {
-        // Cargar el XML autorizado
-        $xml = $this->cargarXMLAutorizado($xml_path);
-        
-        if (!$xml) {
-            throw new \Exception("Error al cargar el XML autorizado: $xml_path");
-        }
-        
-        // Extraer información del XML
-        $estado = (string)$xml->estado;
-        $numero_autorizacion = (string)$xml->numeroAutorizacion;
-        $fecha_autorizacion = (string)$xml->fechaAutorizacion;
-        $ambiente = (string)$xml->ambiente;
-        
-        // Cargar comprobante desde el CDATA
-        $comprobante = new \SimpleXMLElement((string)$xml->comprobante);
-        
-        // Extraer información de la factura
-        $info_tributaria = $comprobante->infoTributaria;
-        $info_factura = $comprobante->infoFactura;
-        $detalles = $comprobante->detalles->detalle;
-        
-        // Información adicional
-        $info_adicional = [];
-        if (isset($comprobante->infoAdicional) && isset($comprobante->infoAdicional->campoAdicional)) {
-            foreach ($comprobante->infoAdicional->campoAdicional as $campo) {
-                $info_adicional[(string)$campo['nombre']] = (string)$campo;
+    // public function generarRIDEFactura($xml_path) {
+    //     // Cargar el XML autorizado
+    //     $xml = $this->cargarXMLAutorizado($xml_path);
+
+    //     if (!$xml) {
+    //         throw new \Exception("Error al cargar el XML autorizado: $xml_path");
+    //     }
+
+    //     // Extraer información del XML
+    //     $estado = (string)$xml->estado;
+    //     $numero_autorizacion = (string)$xml->numeroAutorizacion;
+    //     $fecha_autorizacion = (string)$xml->fechaAutorizacion;
+    //     $ambiente = (string)$xml->ambiente;
+
+    //     // Cargar comprobante desde el CDATA
+    //     $comprobante = new \SimpleXMLElement((string)$xml->comprobante);
+
+    //     // Extraer información de la factura
+    //     $info_tributaria = $comprobante->infoTributaria;
+    //     $info_factura = $comprobante->infoFactura;
+    //     $detalles = $comprobante->detalles->detalle;
+
+    //     // Información adicional
+    //     $info_adicional = [];
+    //     if (isset($comprobante->infoAdicional) && isset($comprobante->infoAdicional->campoAdicional)) {
+    //         foreach ($comprobante->infoAdicional->campoAdicional as $campo) {
+    //             $info_adicional[(string)$campo['nombre']] = (string)$campo;
+    //         }
+    //     }
+
+    //     // Generar HTML del RIDE
+    //     $html = $this->generarHTMLFactura(
+    //         $estado,
+    //         $numero_autorizacion,
+    //         $fecha_autorizacion,
+    //         $ambiente,
+    //         $info_tributaria,
+    //         $info_factura,
+    //         $detalles,
+    //         $info_adicional
+    //     );
+
+    //     return $html;
+    // }
+
+    public function generarRIDEFactura($xml_path)
+    {
+        try {
+            // Verificar que el archivo exista
+            if (!file_exists($xml_path)) {
+                throw new \Exception("El archivo XML autorizado no existe: $xml_path");
             }
+
+            // Cargar el XML
+            $xml_content = file_get_contents($xml_path);
+            if (empty($xml_content)) {
+                throw new \Exception("El archivo XML autorizado está vacío");
+            }
+
+            // Para pruebas, simplemente devolver un HTML básico
+            return $this->generarHTMLBasico($xml_path);
+        } catch (\Exception $e) {
+            return '<div class="alert alert-danger">Error al generar RIDE: ' . $e->getMessage() . '</div>';
         }
-        
-        // Generar HTML del RIDE
-        $html = $this->generarHTMLFactura(
-            $estado,
-            $numero_autorizacion,
-            $fecha_autorizacion,
-            $ambiente,
-            $info_tributaria,
-            $info_factura,
-            $detalles,
-            $info_adicional
-        );
-        
-        return $html;
+    }
+
+    /**
+     * Genera un HTML básico para pruebas
+     */
+    private function generarHTMLBasico($xml_path)
+    {
+        return '<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RIDE de Prueba</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .container { border: 1px solid #000; padding: 20px; }
+        .header { text-align: center; border-bottom: 1px solid #000; padding-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>RIDE DE PRUEBA</h2>
+            <p>Archivo: ' . basename($xml_path) . '</p>
+            <p>Fecha y Hora: ' . date('Y-m-d H:i:s') . '</p>
+        </div>
+        <div class="content">
+            <p>Este es un RIDE generado para pruebas.</p>
+        </div>
+    </div>
+</body>
+</html>';
     }
     
     /**

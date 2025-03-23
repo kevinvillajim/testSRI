@@ -1,0 +1,11 @@
+{
+    "xsd_path": "C:\\Users\\kevin\\OneDrive\\Desktop\\Proyecto de Programaci\u00f3n\\Proyectos Personales\\SRITest\/xsd",
+    "xsd_files": {
+        "01": "factura_v1.0.0.xsd",
+        "04": "notaCredito_v1.0.0.xsd",
+        "05": "notaDebito_v1.0.0.xsd",
+        "06": "guiaRemision_v1.0.0.xsd",
+        "07": "comprobanteRetencion_v1.0.0.xsd",
+        "03": "liquidacionCompra_v1.0.0.xsd"
+    }
+}

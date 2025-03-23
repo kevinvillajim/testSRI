@@ -40,11 +40,13 @@ return [
     // Rutas de almacenamiento
     'rutas' => [
         'certificado' => __DIR__ . '/../certificados/certificado.p12',
-        'clave_certificado' => 'clave_del_certificado',
+        'clave_certificado' => '123456',
         'generados' => __DIR__ . '/../comprobantes/generados/',
         'firmados' => __DIR__ . '/../comprobantes/firmados/',
         'enviados' => __DIR__ . '/../comprobantes/enviados/',
         'autorizados' => __DIR__ . '/../comprobantes/autorizados/',
+        'no_autorizados' => __DIR__ . '/../comprobantes/no_autorizados/',
+        'rechazados' => __DIR__ . '/../comprobantes/rechazados/',
     ],
     
     // Configuración de la firma

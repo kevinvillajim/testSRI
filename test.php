@@ -2,6 +2,7 @@
 // Script de prueba para el sistema de facturación electrónica SRI
 
 // Cargamos el autoloader
+require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/facturacion-sri.php';
 
 // Cargamos la configuración

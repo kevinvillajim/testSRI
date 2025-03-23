@@ -33,6 +33,8 @@
  */
 
 // Estructura básica para autoload
+require_once __DIR__ . '/vendor/autoload.php';
+
 spl_autoload_register(function ($class) {
     $prefix = '';
     $base_dir = __DIR__ . '/src/';
