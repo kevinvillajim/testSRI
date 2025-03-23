@@ -65,7 +65,11 @@ class Factura
         $secuencial = str_pad($secuencial, 9, '0', STR_PAD_LEFT);
 
         // Generamos la clave de acceso
-        $fecha_ymd = \DateTime::createFromFormat('d/m/Y', $fechaEmision)->format('dmY');
+        $fecha = \DateTime::createFromFormat('d/m/Y', $fechaEmision);
+        if (!$fecha) {
+            $fecha = new \DateTime();
+        }
+        $fecha_ymd = $fecha->format('dmY');
         $serie = $this->config['establecimiento']['codigo'] . $this->config['establecimiento']['punto_emision'];
         $codigo_numerico = str_pad(mt_rand(0, 99999999), 8, '0', STR_PAD_LEFT);
 
@@ -96,11 +100,11 @@ class Factura
         ];
 
         // Agregar campos condicionales para emisores
-        if ($this->config['emisor']['agente_retencion']) {
+        if (!empty($this->config['emisor']['agente_retencion'])) {
             $this->datos['infoTributaria']['agenteRetencion'] = $this->config['emisor']['agente_retencion'];
         }
 
-        if ($this->config['emisor']['regimen_microempresas']) {
+        if (!empty($this->config['emisor']['regimen_microempresas'])) {
             $this->datos['infoTributaria']['contribuyenteRimpe'] = 'CONTRIBUYENTE RÉGIMEN RIMPE';
         }
 
@@ -108,10 +112,12 @@ class Factura
         $this->datos['infoFactura'] = [
             'fechaEmision' => $fechaEmision,
             'dirEstablecimiento' => $this->config['establecimiento']['dir_establecimiento'],
+            'contribuyenteEspecial' => isset($this->config['emisor']['contribuyente_especial']) ? $this->config['emisor']['contribuyente_especial'] : '',
+            'obligadoContabilidad' => isset($this->config['emisor']['obligado_contabilidad']) ? $this->config['emisor']['obligado_contabilidad'] : 'NO',
             'tipoIdentificacionComprador' => $cliente['tipo_identificacion'],
             'razonSocialComprador' => $cliente['razon_social'],
             'identificacionComprador' => $cliente['identificacion'],
-            'direccionComprador' => $cliente['direccion'],
+            'direccionComprador' => isset($cliente['direccion']) ? $cliente['direccion'] : '',
             'totalSinImpuestos' => '0.00',
             'totalDescuento' => '0.00',
             'totalConImpuestos' => ['totalImpuesto' => []],
@@ -119,15 +125,6 @@ class Factura
             'importeTotal' => '0.00',
             'moneda' => 'DOLAR'
         ];
-
-        // Agregar campos condicionales
-        if (!empty($this->config['emisor']['contribuyente_especial'])) {
-            $this->datos['infoFactura']['contribuyenteEspecial'] = $this->config['emisor']['contribuyente_especial'];
-        }
-
-        if (!empty($this->config['emisor']['obligado_contabilidad'])) {
-            $this->datos['infoFactura']['obligadoContabilidad'] = $this->config['emisor']['obligado_contabilidad'];
-        }
 
         return $this;
     }
@@ -205,12 +202,12 @@ class Factura
     public function agregarItem($item)
     {
         $detalle = [
-            'codigoPrincipal' => $item['codigo'],
+            'codigoPrincipal' => isset($item['codigoPrincipal']) ? $item['codigoPrincipal'] : $item['codigo'],
             'descripcion' => $item['descripcion'],
             'cantidad' => number_format($item['cantidad'], 6, '.', ''),
-            'precioUnitario' => number_format($item['precio_unitario'], 6, '.', ''),
+            'precioUnitario' => number_format(isset($item['precioUnitario']) ? $item['precioUnitario'] : $item['precio_unitario'], 6, '.', ''),
             'descuento' => number_format($item['descuento'], 2, '.', ''),
-            'precioTotalSinImpuesto' => number_format($item['precio_total_sin_impuesto'], 2, '.', ''),
+            'precioTotalSinImpuesto' => number_format(isset($item['precioTotalSinImpuesto']) ? $item['precioTotalSinImpuesto'] : $item['precio_total_sin_impuesto'], 2, '.', ''),
             'impuestos' => [
                 'impuesto' => []
             ]
@@ -226,8 +223,8 @@ class Factura
         }
 
         // Agregar código auxiliar si existe
-        if (isset($item['codigo_auxiliar'])) {
-            $detalle['codigoAuxiliar'] = $item['codigo_auxiliar'];
+        if (isset($item['codigo_auxiliar']) || isset($item['codigoAuxiliar'])) {
+            $detalle['codigoAuxiliar'] = isset($item['codigoAuxiliar']) ? $item['codigoAuxiliar'] : $item['codigo_auxiliar'];
         }
 
         // Agregar impuestos
@@ -358,8 +355,8 @@ class Factura
      */
     public function agregarRetencion($retencion)
     {
-        if (!isset($this->datos['retenciones'])) {
-            $this->datos['retenciones'] = ['retencion' => []];
+        if (!isset($this->datos['retenciones']['retencion'])) {
+            $this->datos['retenciones']['retencion'] = [];
         }
 
         $this->datos['retenciones']['retencion'][] = [
@@ -414,8 +411,8 @@ class Factura
      */
     public function agregarRubroTerceros($rubro)
     {
-        if (!isset($this->datos['otrosRubrosTerceros'])) {
-            $this->datos['otrosRubrosTerceros'] = ['rubro' => []];
+        if (!isset($this->datos['otrosRubrosTerceros']['rubro'])) {
+            $this->datos['otrosRubrosTerceros']['rubro'] = [];
         }
 
         $this->datos['otrosRubrosTerceros']['rubro'][] = [
@@ -478,16 +475,154 @@ class Factura
     {
         $xml = new \SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><factura id="comprobante" version="2.1.0" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="file:/C:/borrar/xsd/111-xsd-1_V2.1.0.xsd"></factura>');
 
-        // Convertir el array a XML
-        XML::arrayToXML($this->datos, $xml);
+        // Crear estructura básica para mantener el orden correcto
+        $infoTributaria = $xml->addChild('infoTributaria');
+        $infoFactura = $xml->addChild('infoFactura');
+        $detalles = $xml->addChild('detalles');
 
-        // Procesamos la información adicional
+        // Procesar infoTributaria
+        if (!empty($this->datos['infoTributaria'])) {
+            foreach ($this->datos['infoTributaria'] as $key => $value) {
+                if (!is_null($value)) {
+                    $infoTributaria->addChild($key, htmlspecialchars($value));
+                }
+            }
+        }
+
+        // Procesar infoFactura
+        if (!empty($this->datos['infoFactura'])) {
+            foreach ($this->datos['infoFactura'] as $key => $value) {
+                if ($key === 'totalConImpuestos' && isset($value['totalImpuesto']) && !empty($value['totalImpuesto'])) {
+                    $totalConImpuestos = $infoFactura->addChild('totalConImpuestos');
+                    foreach ($value['totalImpuesto'] as $impuesto) {
+                        $totalImpuesto = $totalConImpuestos->addChild('totalImpuesto');
+                        foreach ($impuesto as $k => $v) {
+                            $totalImpuesto->addChild($k, htmlspecialchars($v));
+                        }
+                    }
+                } else if ($key === 'compensaciones' && isset($value['compensacion']) && !empty($value['compensacion'])) {
+                    $compensaciones = $infoFactura->addChild('compensaciones');
+                    foreach ($value['compensacion'] as $compensacion) {
+                        $comp = $compensaciones->addChild('compensacion');
+                        foreach ($compensacion as $k => $v) {
+                            $comp->addChild($k, htmlspecialchars($v));
+                        }
+                    }
+                } else if ($key === 'pagos' && isset($value['pago']) && !empty($value['pago'])) {
+                    $pagos = $infoFactura->addChild('pagos');
+                    foreach ($value['pago'] as $pago) {
+                        $p = $pagos->addChild('pago');
+                        foreach ($pago as $k => $v) {
+                            $p->addChild($k, htmlspecialchars($v));
+                        }
+                    }
+                } else if (!is_array($value)) {
+                    $infoFactura->addChild($key, htmlspecialchars($value));
+                }
+            }
+        }
+
+        // Procesar detalles
+        if (!empty($this->datos['detalles']['detalle'])) {
+            foreach ($this->datos['detalles']['detalle'] as $detalle) {
+                $det = $detalles->addChild('detalle');
+                foreach ($detalle as $key => $value) {
+                    if ($key === 'impuestos' && isset($value['impuesto']) && !empty($value['impuesto'])) {
+                        $impuestos = $det->addChild('impuestos');
+                        foreach ($value['impuesto'] as $impuesto) {
+                            $imp = $impuestos->addChild('impuesto');
+                            foreach ($impuesto as $k => $v) {
+                                $imp->addChild($k, htmlspecialchars($v));
+                            }
+                        }
+                    } else if (!is_array($value)) {
+                        $det->addChild($key, htmlspecialchars($value));
+                    }
+                }
+            }
+        }
+
+        // Procesar retenciones
+        if (!empty($this->datos['retenciones']['retencion'])) {
+            $retenciones = $xml->addChild('retenciones');
+            foreach ($this->datos['retenciones']['retencion'] as $retencion) {
+                $ret = $retenciones->addChild('retencion');
+                foreach ($retencion as $key => $value) {
+                    $ret->addChild($key, htmlspecialchars($value));
+                }
+            }
+        }
+
+        // Procesar reembolsos
+        if (!empty($this->datos['reembolsos']['reembolsoDetalle'])) {
+            $reembolsos = $xml->addChild('reembolsos');
+            foreach ($this->datos['reembolsos']['reembolsoDetalle'] as $reembolso) {
+                $reembDet = $reembolsos->addChild('reembolsoDetalle');
+                foreach ($reembolso as $key => $value) {
+                    if (!is_array($value)) {
+                        $reembDet->addChild($key, htmlspecialchars($value));
+                    } else if ($key === 'detalleImpuestos' && isset($value['detalleImpuesto'])) {
+                        $detImp = $reembDet->addChild('detalleImpuestos');
+                        foreach ($value['detalleImpuesto'] as $impuesto) {
+                            $imp = $detImp->addChild('detalleImpuesto');
+                            foreach ($impuesto as $k => $v) {
+                                $imp->addChild($k, htmlspecialchars($v));
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Procesar infoSustitutivaGuiaRemision
+        if (!empty($this->datos['infoSustitutivaGuiaRemision'])) {
+            $infoGuia = $xml->addChild('infoSustitutivaGuiaRemision');
+            foreach ($this->datos['infoSustitutivaGuiaRemision'] as $key => $value) {
+                if ($key === 'destinos' && isset($value['destino']) && !empty($value['destino'])) {
+                    $destinos = $infoGuia->addChild('destinos');
+                    foreach ($value['destino'] as $destino) {
+                        $dest = $destinos->addChild('destino');
+                        foreach ($destino as $k => $v) {
+                            $dest->addChild($k, htmlspecialchars($v));
+                        }
+                    }
+                } else if (!is_array($value)) {
+                    $infoGuia->addChild($key, htmlspecialchars($value));
+                }
+            }
+        }
+
+        // Procesar otrosRubrosTerceros
+        if (!empty($this->datos['otrosRubrosTerceros']['rubro'])) {
+            $otrosRubros = $xml->addChild('otrosRubrosTerceros');
+            foreach ($this->datos['otrosRubrosTerceros']['rubro'] as $rubro) {
+                $rub = $otrosRubros->addChild('rubro');
+                foreach ($rubro as $key => $value) {
+                    $rub->addChild($key, htmlspecialchars($value));
+                }
+            }
+        }
+
+        // Procesar tipoNegociable
+        if (!empty($this->datos['tipoNegociable'])) {
+            $tipoNeg = $xml->addChild('tipoNegociable');
+            $tipoNeg->addChild('correo', htmlspecialchars($this->datos['tipoNegociable']['correo']));
+        }
+
+        // Procesar máquina fiscal
+        if (!empty($this->datos['maquinaFiscal'])) {
+            $maquinaFiscal = $xml->addChild('maquinaFiscal');
+            foreach ($this->datos['maquinaFiscal'] as $key => $value) {
+                $maquinaFiscal->addChild($key, htmlspecialchars($value));
+            }
+        }
+
+        // Procesar información adicional
         if (!empty($this->datos['infoAdicional']['campoAdicional'])) {
-            $info_adicional = $xml->addChild('infoAdicional');
-
+            $infoAdicional = $xml->addChild('infoAdicional');
             foreach ($this->datos['infoAdicional']['campoAdicional'] as $campo) {
-                $campo_adicional = $info_adicional->addChild('campoAdicional', $campo['@value']);
-                $campo_adicional->addAttribute('nombre', $campo['@attributes']['nombre']);
+                $campoAdicional = $infoAdicional->addChild('campoAdicional', htmlspecialchars($campo['@value']));
+                $campoAdicional->addAttribute('nombre', $campo['@attributes']['nombre']);
             }
         }
 
@@ -508,15 +643,5 @@ class Factura
 
         $ruta = $this->config['rutas']['generados'] . $this->claveAcceso . '.xml';
         return XML::guardarXML($this->xml, $ruta);
-    }
-
-    /**
-     * Obtiene la clave de acceso
-     * 
-     * @return string
-     */
-    public function getClaveAcceso()
-    {
-        return $this->claveAcceso;
     }
 }

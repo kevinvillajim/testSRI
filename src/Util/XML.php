@@ -40,7 +40,8 @@ class XML
 
         // Si no se proporcionó una ruta, usar la predeterminada
         if ($configPath === null) {
-            $configPath = dirname(__DIR__) . '../config/config.json';
+            // Corregir la ruta al archivo config.json - Antes: ../config/config.json
+            $configPath = __DIR__ . '/../../xsd/config.json';
         }
 
         // Verificar que exista el archivo de configuración
@@ -49,13 +50,64 @@ class XML
 
             // Guardar la configuración en las propiedades estáticas
             self::$xsdPath = $config['xsd_path'] ?? '';
+
+            // Si la ruta xsd_path no es absoluta, convertirla en absoluta
+            if (!empty(self::$xsdPath) && !realpath(self::$xsdPath)) {
+                self::$xsdPath = __DIR__ . '/../../xsd';
+            }
+
             self::$xsdFiles = $config['xsd_files'] ?? [];
             self::$configLoaded = true;
+
             return true;
         } else {
-            // Si no existe el archivo, mostrar un error
-            error_log("Config file not found: $configPath");
-            return false;
+            // Si no existe el archivo, intentar con la ruta en el directorio xsd
+            $configPath = __DIR__ . '/../../xsd/config.json';
+
+            if (file_exists($configPath)) {
+                $config = json_decode(file_get_contents($configPath), true);
+
+                // Guardar la configuración en las propiedades estáticas
+                self::$xsdPath = $config['xsd_path'] ?? '';
+
+                // Si la ruta xsd_path no es absoluta, convertirla en absoluta
+                if (!empty(self::$xsdPath) && !realpath(self::$xsdPath)) {
+                    self::$xsdPath = __DIR__ . '/../../xsd';
+                }
+
+                self::$xsdFiles = $config['xsd_files'] ?? [];
+                self::$configLoaded = true;
+
+                return true;
+            }
+
+            // Si no se encontró el archivo, crear configuración por defecto
+            self::$xsdPath = __DIR__ . '/../../xsd';
+            self::$xsdFiles = [
+                '01' => 'factura_V2.1.0.xsd',
+                '04' => 'NotaCredito_V1.1.0.xsd',
+                '05' => 'notaDebito_v1.0.0.xsd',
+                '06' => 'guiaRemision_v1.0.0.xsd',
+                '07' => 'comprobanteRetencion_v1.0.0.xsd',
+                '03' => 'liquidacionCompra_v1.0.0.xsd'
+            ];
+            self::$configLoaded = true;
+
+            // Guardar la configuración por defecto para futuras ejecuciones
+            $configDir = dirname($configPath);
+            if (!is_dir($configDir)) {
+                mkdir($configDir, 0755, true);
+            }
+
+            $config = [
+                'xsd_path' => self::$xsdPath,
+                'xsd_files' => self::$xsdFiles
+            ];
+
+            file_put_contents($configPath, json_encode($config, JSON_PRETTY_PRINT));
+
+            error_log("Se ha creado un archivo de configuración por defecto en: $configPath");
+            return true;
         }
     }
 
@@ -166,6 +218,12 @@ class XML
      */
     public static function guardarXML(\SimpleXMLElement $xml, $ruta)
     {
+        // Asegurarse de que el directorio padre exista
+        $dir = dirname($ruta);
+        if (!is_dir($dir)) {
+            mkdir($dir, 0755, true);
+        }
+
         $dom = new \DOMDocument('1.0');
         $dom->preserveWhiteSpace = false;
         $dom->formatOutput = true;
@@ -205,7 +263,12 @@ class XML
 
         // Verificar que exista el XSD
         if (!file_exists($xsd_path)) {
-            return "El archivo XSD no existe: $xsd_path";
+            // Intentar buscar el archivo en el directorio actual
+            $xsd_path = __DIR__ . '/../../xsd/' . self::$xsdFiles[$tipo_comprobante];
+
+            if (!file_exists($xsd_path)) {
+                return "El archivo XSD no existe: $xsd_path";
+            }
         }
 
         // Verificar si también se necesita el esquema xmldsig-core-schema.xsd
@@ -213,7 +276,15 @@ class XML
         $xsd_content = file_get_contents($xsd_path);
 
         if (strpos($xsd_content, 'xmldsig-core-schema.xsd') !== false && !file_exists($xmldsig_path)) {
-            return "El archivo xmldsig-core-schema.xsd no existe y es requerido por el esquema XSD: $xsd_path";
+            // Intentar descargar el esquema xmldsig-core-schema.xsd
+            $xmldsig_url = 'https://www.w3.org/TR/xmldsig-core/xmldsig-core-schema.xsd';
+            $xmldsig_content = @file_get_contents($xmldsig_url);
+
+            if ($xmldsig_content !== false) {
+                file_put_contents($xmldsig_path, $xmldsig_content);
+            } else {
+                return "El archivo xmldsig-core-schema.xsd no existe y es requerido por el esquema XSD: $xsd_path";
+            }
         }
 
         try {
@@ -322,16 +393,37 @@ class XML
         $exito = true;
         foreach ($esquemas as $nombre => $url) {
             try {
-                $contenido = file_get_contents($url);
+                $contenido = @file_get_contents($url);
                 if ($contenido === false) {
+                    error_log("No se pudo descargar el esquema: $url");
                     $exito = false;
                     continue;
                 }
 
                 file_put_contents($xsdDir . '/' . $nombre, $contenido);
+                error_log("Esquema descargado correctamente: $nombre");
             } catch (\Exception $e) {
+                error_log("Error al descargar esquema $nombre: " . $e->getMessage());
                 $exito = false;
             }
+        }
+
+        // Si tenemos éxito, actualizamos el archivo de configuración
+        if ($exito) {
+            $config = [
+                'xsd_path' => $xsdDir,
+                'xsd_files' => [
+                    '01' => 'factura_V2.1.0.xsd',
+                    '04' => 'NotaCredito_V1.1.0.xsd',
+                    '05' => 'notaDebito_v1.0.0.xsd',
+                    '06' => 'guiaRemision_v1.0.0.xsd',
+                    '07' => 'comprobanteRetencion_v1.0.0.xsd',
+                    '03' => 'liquidacionCompra_v1.0.0.xsd'
+                ]
+            ];
+
+            $configPath = $xsdDir . '/config.json';
+            file_put_contents($configPath, json_encode($config, JSON_PRETTY_PRINT));
         }
 
         return $exito;
@@ -361,7 +453,12 @@ class XML
 
         // Verificar que exista el XSD
         if (!file_exists($xsd_path)) {
-            return false;
+            // Intentar buscar en el directorio actual
+            $xsd_path = __DIR__ . '/../../xsd/' . self::$xsdFiles[$tipo_comprobante];
+
+            if (!file_exists($xsd_path)) {
+                return false;
+            }
         }
 
         return $xsd_path;
