@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<factura id="comprobante" version="1.0.0">
+<factura xmlns:ds="http://www.w3.org/2000/09/xmldsig#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" id="comprobante" version="2.1.0" xsi:noNamespaceSchemaLocation="file:/C:/borrar/xsd/111-xsd-1_V2.1.0.xsd">
   <infoTributaria>
     <ambiente>1</ambiente>
     <tipoEmision>1</tipoEmision>
     <razonSocial>EMPRESA DE PRUEBA</razonSocial>
     <nombreComercial>EMPRESA DEMO</nombreComercial>
     <ruc>0000000000001</ruc>
-    <claveAcceso>2303202501000000000000110010010000000019061066211</claveAcceso>
+    <claveAcceso>2303202501000000000000110010010000000010177317611</claveAcceso>
     <codDoc>01</codDoc>
     <estab>001</estab>
     <ptoEmi>001</ptoEmi>
     <secuencial>000000001</secuencial>
     <dirMatriz>DIRECCION MATRIZ PRINCIPAL</dirMatriz>
+    <contribuyenteRimpe>CONTRIBUYENTE RÉGIMEN RIMPE</contribuyenteRimpe>
   </infoTributaria>
   <infoFactura>
     <fechaEmision>23/03/2025</fechaEmision>
@@ -24,10 +25,12 @@
     <totalDescuento>0.00</totalDescuento>
     <totalConImpuestos>
       <totalImpuesto>
-        <codigo>2</codigo>
-        <codigoPorcentaje>2</codigoPorcentaje>
-        <baseImponible>100.00</baseImponible>
-        <valor>12.00</valor>
+        <item0>
+          <codigo>2</codigo>
+          <codigoPorcentaje>2</codigoPorcentaje>
+          <baseImponible>100.00</baseImponible>
+          <valor>12.00</valor>
+        </item0>
       </totalImpuesto>
     </totalConImpuestos>
     <propina>0.00</propina>
@@ -36,37 +39,57 @@
     <obligadoContabilidad>SI</obligadoContabilidad>
     <pagos>
       <pago>
-        <formaPago>01</formaPago>
-        <total>112.00</total>
+        <item0>
+          <formaPago>01</formaPago>
+          <total>112.00</total>
+        </item0>
       </pago>
     </pagos>
   </infoFactura>
   <detalles>
     <detalle>
-      <codigoPrincipal>PRO001</codigoPrincipal>
-      <descripcion>Producto de prueba</descripcion>
-      <cantidad>1.00</cantidad>
-      <precioUnitario>100.00</precioUnitario>
-      <descuento>0.00</descuento>
-      <precioTotalSinImpuesto>100.00</precioTotalSinImpuesto>
-      <impuestos>
-        <impuesto>
-          <codigo>2</codigo>
-          <codigoPorcentaje>2</codigoPorcentaje>
-          <tarifa>12.00</tarifa>
-          <baseImponible>100.00</baseImponible>
-          <valor>12.00</valor>
-        </impuesto>
-      </impuestos>
+      <item0>
+        <descripcion>Producto de prueba</descripcion>
+        <cantidad>1.000000</cantidad>
+        <precioUnitario>100.000000</precioUnitario>
+        <descuento>0.00</descuento>
+        <precioTotalSinImpuesto>0.00</precioTotalSinImpuesto>
+        <impuestos>
+          <impuesto>
+            <item0>
+              <codigo>2</codigo>
+              <codigoPorcentaje>2</codigoPorcentaje>
+              <tarifa>12.00</tarifa>
+              <baseImponible>100.00</baseImponible>
+              <valor>12.00</valor>
+            </item0>
+          </impuesto>
+        </impuestos>
+      </item0>
     </detalle>
   </detalles>
+  <reembolsos>
+    <reembolsoDetalle/>
+  </reembolsos>
+  <retenciones>
+    <retencion/>
+  </retenciones>
+  <otrosRubrosTerceros>
+    <rubro/>
+  </otrosRubrosTerceros>
+  <infoAdicional>
+    <campoAdicional>
+      <item0 nombre="Email">prueba@mail.com</item0>
+      <item1 nombre="Teléfono">099999999</item1>
+    </campoAdicional>
+  </infoAdicional>
   <infoAdicional>
     <campoAdicional nombre="Email">prueba@mail.com</campoAdicional>
     <campoAdicional nombre="Teléfono">099999999</campoAdicional>
   </infoAdicional>
-  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+  <ds:Signature>
   <ds:SignedInfo>
     <ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
-  <ds:Reference><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>eiCSTlgHGpjDZ/uhHVFFOQEJjEI=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>GboSj0AKI1Kv0QqK1BrFHnEFBbEBWBc8Eh7NXaINnhPEl06L4PxFmfJPFaV0Ra5Urhvz0NCLMnAHgOcYpzfqc6DBNArHcN4dMotSE3y7Ivxw3FXc3AK04EjgV9JZxsNexFK06e1kPCFSba9bfN+KDyDSEbJCex0mUQLf6triUHI5HDd2cUOgAmXmx80qCJVtUh4gpIlrd2JZLxlp9Pr7gGi/t0wS5YheaRoaBysWhz7pl29iAoyvcgp1GFAv14/I4JZNz3d0GZVsRjXDuPoxJZbvNb6S23QK1+TEvmw4Ucv7uH/1TqO7oo1Td2MJ4XEzq0zwvPt/3GTCBy66zrpNeA==</ds:SignatureValue>
+  <ds:Reference><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/><ds:DigestValue>slgFI/W1zyiHsHLVAaSVnJns7KU=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>YYyn3UxskBcqCtkRBZpkzHideA6jMuHuRoM0QB9QW20Co4gMQFaB9lEMmyarOWr7bVM5rZYq/PZNuVTDEgy6jRZtB1d3hegKUitqO1N/HoGoSQm8DEW5pSGhafjAM4kNLsX6tMDf1/BMlIG4t0zHlbM+ZfPJZyqk1nDUK7jmU6WUN78ZbqyP564VZtiyv0nRyWCLgiw4DuR8aCNSZns6cTkGROAdbN4Qzfbzx4/bDiPIGOcqeVUJSRuM6a7Q7yS6GOHxi5Axow3va6lT4CjcbZi74VvFrj2QtvirjZdIeHGHtwJN7sMNBh72Ks3HFYx0jATF2MaORBvF3iONlUtZBQ==</ds:SignatureValue>
 <ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIICrzCCAZegAwIBAgIUcGrhfyASNMVZH091kUdaZlA4ciAwDQYJKoZIhvcNAQELBQAwADAeFw0yNTAzMjMwODQxNThaFw0yNjAzMjMwODQxNThaMAAwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQCgcJ/QRYTtmPkaNhYvdqzzFfPTbY6TKP0sKIhvC24JBZDvF8O9+Zt4ngLQiNiSZAYCxER+27ekGNfIs8Bi6FxjLDrpULM2slWNzzMELoKk2FTpsRHQDYNaVqxKZoY7G3gwDlUfeiZTJJHmAaor7U/i8hkY1aIOZ3NyMkvZJhUPK6nE55WwVigq/y1Sd2JFKAy5Lz/iRpwIfImJFVwxVnZJCnRnb3XIuiEuhZFynKplLqrYmA++RWUZV0YEyYmwAhYZPhaW77WiwE/By18F34XB25E8a1sxau9s+7Z+sygQ+oYXPRnHA2gZLZb501PtNVWl0T3Ofw/ob1qjIfzKFg8ZAgMBAAGjITAfMB0GA1UdDgQWBBRX5/wJ4nGfS5NOItSaxqW7Y6PujjANBgkqhkiG9w0BAQsFAAOCAQEAgXIb50DXk8AqQjZkydjY8/kQOr5Ppuh8NFb8nl0Hi0S75z2p+KKwNRHWavUz88u7eEWgmZzEWtKHJ2tPo0pJcW923swzrkAWI3j01r1V+Dkc2Jamc7V5PdX5OdBQLcc9egiIcldOvYpAbQhO9wWxsnVurp267e28vfdRzl/CuNHQ+djIJXsvWXEcsPoM4WUIjZQ4qFNSz9jEpG26ujzkzy60YA8O5HaJPXoeQtb/gZfKdF8lwB02fYpz/Qb3/x8EJ80D9BSlIObv4YtqDAZ74U6vJIgBhgU2KOXSQWbzyFasZcIvIDYKyzCRNgKVEh4gBSmAxOPWqmh2KJ3Poikjdw==</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>
 </factura>

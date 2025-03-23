@@ -42,7 +42,7 @@ class RIDE {
             if (version_compare($version, '2.0.0', '>=')) {
                 return $this->generarRIDEFacturaV2($xml);
             } else {
-                return $this->generarRIDEFacturaV1($xml);
+                return 'Tu version no es compatible con el sistema';
             }
         } catch (\Exception $e) {
             return '<div class="alert alert-danger">Error al generar RIDE: ' . $e->getMessage() . '</div>';
@@ -472,7 +472,7 @@ class RIDE {
             if (version_compare($version, '1.1.0', '>=')) {
                 return $this->generarRIDENotaCreditoV11($xml);
             } else {
-                return $this->generarRIDENotaCreditoV1($xml);
+                return 'Tu version no es compatible con el sistema';
             }
         } catch (\Exception $e) {
             return '<div class="alert alert-danger">Error al generar RIDE: ' . $e->getMessage() . '</div>';
@@ -756,6 +756,7 @@ class RIDE {
 
         return $html;
     }
+
 
     /**
      * Busca un impuesto por código y código de porcentaje

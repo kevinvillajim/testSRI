@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>RIDE - Factura v2.1.0</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        .header {
+            border-bottom: 1px solid #000;
+            padding-bottom: 10px;
+            margin-bottom: 10px;
+        }
+        .info-factura {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        .cliente {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .totales {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-top: 10px;
+        }
+        .info-adicional {
+            border: 1px solid #000;
+            padding: 10px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2>FACTURA</h2>
+            <p><strong>Número de Autorización:</strong> 2303202501000000000000110010010000000010177317611</p>
+            <p><strong>Fecha y Hora de Autorización:</strong> 2025-03-23 12:36:26</p>
+            <p><strong>Ambiente:</strong> PRUEBAS</p>
+            <p><strong>Emisión:</strong> NORMAL</p>
+            <p><strong>Clave de Acceso:</strong> 2303202501000000000000110010010000000010177317611</p>
+        </div>
+        
+        <div class="info-factura">
+            <table>
+                <tr>
+                    <td><strong>Razón Social:</strong> EMPRESA DE PRUEBA</td>
+                    <td><strong>RUC:</strong> 0000000000001</td>
+                </tr>
+                <tr>
+                    <td><strong>Nombre Comercial:</strong> EMPRESA DEMO</td>
+                    <td></td>
+                </tr>
+                <tr>
+                    <td><strong>Dirección Matriz:</strong> DIRECCION MATRIZ PRINCIPAL</td>
+                    <td><strong>Dirección Sucursal:</strong> DIRECCION DEL PUNTO DE VENTA</td>
+                </tr><tr><td colspan="2"><strong>Obligado a Llevar Contabilidad:</strong> SI</td></tr><tr><td colspan="2"><strong>Contribuyente RIMPE:</strong> CONTRIBUYENTE RÉGIMEN RIMPE</td></tr>
+            </table>
+        </div>
+        
+        <div class="cliente">
+            <table>
+                <tr>
+                    <td><strong>Razón Social / Nombres y Apellidos:</strong> PRUEBAS SERVICIO DE RENTAS INTERNAS</td>
+                    <td><strong>Identificación:</strong> 1760013210001</td>
+                </tr>
+                <tr>
+                    <td><strong>Fecha Emisión:</strong> 23/03/2025</td>
+                    <td><strong>Guía de Remisión:</strong> </td>
+                </tr>
+            </table>
+        </div>
+        
+        <h3>Detalles</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Cantidad</th>
+                    <th>Unidad</th>
+                    <th>Precio Unitario</th>
+                    <th>Descuento</th>
+                    <th>Precio Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                    <td></td>
+                   <td></td>
+               </tr>
+           </tbody>
+       </table>
+       
+       <div class="totales">
+           <table>
+               <tr>
+                   <td><strong>SUBTOTAL 12%:</strong></td>
+                   <td>0.00</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL 0%:</strong></td>
+                   <td>0.00</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL No objeto de IVA:</strong></td>
+                   <td>0.00</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL Exento de IVA:</strong></td>
+                   <td>0.00</td>
+               </tr>
+               <tr>
+                   <td><strong>SUBTOTAL SIN IMPUESTOS:</strong></td>
+                   <td>100.00</td>
+               </tr>
+               <tr>
+                   <td><strong>DESCUENTO:</strong></td>
+                   <td>0.00</td>
+               </tr>
+               <tr>
+                   <td><strong>PROPINA:</strong></td>
+                   <td>0.00</td>
+               </tr>
+               <tr>
+                   <td><strong>VALOR TOTAL:</strong></td>
+                   <td>112.00</td>
+               </tr>
+           </table>
+       </div>
+       <div class="totales">
+           <h3>Formas de Pago</h3>
+           <table>
+               <tr>
+                   <th>Forma Pago</th>
+                   <th>Total</th>
+                   <th>Plazo</th>
+                   <th>Unidad de Tiempo</th>
+               </tr>
+               <tr>
+                   <td>DESCONOCIDO ()</td>
+                   <td></td>
+                   <td></td>
+                   <td></td>
+               </tr>
+           </table>
+       </div>
+       <div class="totales">
+           <h3>Retenciones</h3>
+           <table>
+               <tr>
+                   <th>Código</th>
+                   <th>Código Porcentaje</th>
+                   <th>Tarifa</th>
+                   <th>Valor</th>
+               </tr>
+               <tr>
+                   <td></td>
+                   <td></td>
+                   <td></td>
+                   <td></td>
+               </tr>
+           </table>
+       </div>
+       <div class="info-adicional">
+           <h3>Información Adicional</h3>
+           <table>
+               <tr>
+                   <td><strong>:</strong></td>
+                   <td>
+      
+      
+    </td>
+               </tr>
+           </table>
+       </div>
+   </div>
+</body>
+</html>
